@@ -26,7 +26,7 @@ jobs:
             "https://github.com/GrowtopiaJaw/aarch64-linux-android-4.9/archive/refs/heads/google.tar.gz"
           mkdir -p "$HOME/aarch64-gcc-4.9"
           tar -xzf "$HOME/gcc.tar.gz" -C "$HOME/aarch64-gcc-4.9" --strip-components=1
-          TOOLBIN="$HOME/aarch64-gcc-4.9/aarch64-linux-android/bin"
+          TOOLBIN="$HOME/aarch64-gcc-4.9/bin"
           test -x "$TOOLBIN/aarch64-linux-android-gcc"
           echo "$TOOLBIN" >> "$GITHUB_PATH"
 
