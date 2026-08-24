@@ -17,14 +17,21 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y bc bison build-essential ccache flex libssl-dev libelf-dev python3 unzip zip wget xz-utils
 
-      - name: Install Android GCC 4.9 toolchain
+      - name: Download Android GCC 4.9 toolchain
         run: |
-          git clone --depth=1 --single-branch --branch=google https://github.com/GrowtopiaJaw/aarch64-linux-android-4.9.git "$HOME/aarch64-gcc-4.9"
-          test -x "$HOME/aarch64-gcc-4.9/aarch64-linux-android/bin/aarch64-linux-android-gcc"
+          set -e
+          TOOLCHAIN_ROOT="$HOME/aarch64-gcc-4.9"
+          mkdir -p "$TOOLCHAIN_ROOT"
+          wget -q --show-progress -O "$HOME/aarch64-gcc-4.9.tar.gz" \
+            "https://github.com/GrowtopiaJaw/aarch64-linux-android-4.9/archive/refs/heads/google.tar.gz"
+          tar -xzf "$HOME/aarch64-gcc-4.9.tar.gz" -C "$HOME"
+          mv "$HOME/aarch64-linux-android-4.9-google" "$TOOLCHAIN_ROOT/source"
+          test -x "$TOOLCHAIN_ROOT/source/aarch64-linux-android/bin/aarch64-linux-android-gcc"
+          ln -s "$TOOLCHAIN_ROOT/source/aarch64-linux-android" "$TOOLCHAIN_ROOT/aarch64-linux-android"
+          echo "$TOOLCHAIN_ROOT/aarch64-linux-android/bin" >> "$GITHUB_PATH"
 
       - name: Verify compiler
         run: |
-          export PATH="$HOME/aarch64-gcc-4.9/aarch64-linux-android/bin:$PATH"
           command -v aarch64-linux-android-gcc
           aarch64-linux-android-gcc --version
           aarch64-linux-android-gcc -dumpmachine
@@ -34,7 +41,6 @@ jobs:
         run: |
           export ARCH=arm64
           export SUBARCH=arm64
-          export PATH="$HOME/aarch64-gcc-4.9/aarch64-linux-android/bin:$PATH"
           export CROSS_COMPILE=aarch64-linux-android-
 
           unset CFLAGS CXXFLAGS CPPFLAGS KCFLAGS KCPPFLAGS
