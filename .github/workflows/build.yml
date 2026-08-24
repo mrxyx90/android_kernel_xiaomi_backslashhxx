@@ -9,65 +9,101 @@ jobs:
   build:
     runs-on: ubuntu-22.04
     steps:
-      - name: Checkout
+      - name: Checkout YSL
         uses: actions/checkout@v4
         with:
           ref: ysl
+          submodules: recursive
 
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y bc bison build-essential flex libssl-dev libelf-dev python3 unzip zip wget xz-utils
+          sudo apt-get install -y bc bison build-essential ccache flex libssl-dev libelf-dev python3 rsync unzip zip wget xz-utils lz4
 
       - name: Download Proton Clang
         run: |
           set -eux
           git clone --depth=1 https://github.com/kdrag0n/proton-clang.git "$HOME/proton-clang"
           test -x "$HOME/proton-clang/bin/clang"
-          "$HOME/proton-clang/bin/clang" --version
           echo "$HOME/proton-clang/bin" >> "$GITHUB_PATH"
-
-      - name: Verify Clang
-        run: |
-          set -eux
-          command -v clang
-          clang --version
-          command -v ld.lld || true
-          command -v aarch64-linux-gnu-ld
 
       - name: Build YSL kernel
         run: |
           set -eux
+          export DEVICENAME=ysl
           export ARCH=arm64
           export SUBARCH=arm64
+          export HEADER_ARCH=arm64
+          export PATH="$HOME/proton-clang/bin:$PATH"
+          export CCACHE_DIR="$HOME/.ccache"
+          ccache -M 2G || true
 
-          unset CFLAGS CXXFLAGS CPPFLAGS KCFLAGS KCPPFLAGS
-          unset HOST_EXTRACFLAGS HOST_EXTRACXXFLAGS
+          rm -rf out_ysl
+          mkdir -p out_ysl
+          echo 'CONFIG_LOCALVERSION="-ysl"' > /tmp/lineageos_xx_devicename
 
-          make O=out ARCH=arm64 msm8953_defconfig
-          scripts/config --file out/.config --disable CONFIG_CC_STACKPROTECTOR_STRONG
-          make O=out ARCH=arm64 olddefconfig
+          ARCH=arm64 scripts/kconfig/merge_config.sh -O out_ysl \
+            arch/arm64/configs/msm8953-perf_defconfig \
+            arch/arm64/configs/xiaomi/xiaomi.config \
+            arch/arm64/configs/xiaomi/ysl.config \
+            lineageos_xx_append \
+            lineageos_xx_vdso \
+            /tmp/lineageos_xx_devicename
 
           make -j"$(nproc)" \
-            O=out \
-            ARCH=arm64 \
-            CC=clang \
-            CROSS_COMPILE=aarch64-linux-gnu- \
+            ARCH=arm64 SUBARCH=arm64 O=out_ysl \
+            CC='ccache clang' \
+            AS=clang \
             AR=llvm-ar \
             NM=llvm-nm \
+            LD=ld.lld \
             OBJCOPY=llvm-objcopy \
             OBJDUMP=llvm-objdump \
-            STRIP=llvm-strip
+            STRIP=llvm-strip \
+            CLANG_TRIPLE=aarch64-linux-gnu- \
+            CROSS_COMPILE=aarch64-linux-gnu- \
+            CROSS_COMPILE_ARM32=arm-linux-gnueabi- \
+            CROSS_COMPILE_COMPAT=arm-linux-gnueabi- \
+            LLVM=1 \
+            LLVM_IAS=1 \
+            INSTALL_MOD_STRIP=1 \
+            KBUILD_BUILD_USER="$(git rev-parse --short HEAD | cut -c1-7)" \
+            KBUILD_BUILD_HOST="$(git symbolic-ref --short HEAD)" \
+            KBUILD_BUILD_FEATURES='source: https://github.com/backslashxx/msm8953-kernel //'
 
-      - name: Collect kernel
+          ccache -s
+          rm -f /tmp/lineageos_xx_devicename
+
+      - name: Prepare YSL kernel and DTB
         run: |
           set -eux
           mkdir -p artifacts
-          find out/arch/arm64/boot -maxdepth 1 -type f -exec cp {} artifacts/ \;
-          find out -type f \( -name '*.dtb' -o -name 'dtb' -o -name 'dtbo.img' \) -exec cp {} artifacts/ \; || true
+          test -f out_ysl/arch/arm64/boot/Image.gz || test -f out_ysl/arch/arm64/boot/Image
+          cp out_ysl/arch/arm64/boot/Image* artifacts/ || true
+          find out_ysl/arch/arm64/boot/dts -type f -name '*.dtb' -exec cp {} artifacts/ \; || true
+          find out_ysl/arch/arm64/boot/dts -type f -name '*ysl*.dtb' -exec cp {} artifacts/ \; || true
           ls -lah artifacts
 
-      - name: Upload YSL kernel
+      - name: Package boot.img from YSL base image
+        if: ${{ vars.YSL_BOOT_IMG_URL != '' }}
+        run: |
+          set -eux
+          sudo apt-get install -y abootimg
+          wget -q -O stock-ysl-boot.img "$YSL_BOOT_IMG_URL"
+          mkdir -p boot-extracted
+          abootimg -x stock-ysl-boot.img -o boot-extracted
+          cp out_ysl/arch/arm64/boot/Image.gz boot-extracted/zImage
+          abootimg --create boot.img \
+            -f boot-extracted/bootimg.cfg \
+            -k boot-extracted/zImage \
+            -r boot-extracted/ramdisk.img
+          test -s boot.img
+          cp boot.img artifacts/boot.img
+          ls -lh artifacts/boot.img
+        env:
+          YSL_BOOT_IMG_URL: ${{ vars.YSL_BOOT_IMG_URL }}
+
+      - name: Upload YSL artifacts
         uses: actions/upload-artifact@v4
         with:
           name: ysl-msm8953-kernel
