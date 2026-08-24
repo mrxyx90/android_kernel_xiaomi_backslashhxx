@@ -19,47 +19,45 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y bc bison build-essential flex libssl-dev libelf-dev python3 unzip zip wget xz-utils
 
-      - name: Download real Android GCC 4.9 prebuilt
+      - name: Download Proton Clang
         run: |
           set -eux
-          GCC_URL="https://android.googlesource.com/platform/prebuilts/gcc/linux-x86/aarch64/aarch64-linux-android-4.9/+archive/89aa77dc369931868dce6924b7997e7e5f0fefe7.tar.gz"
-          wget -q --show-progress -O "$HOME/gcc.tar.gz" "$GCC_URL"
-          mkdir -p "$HOME/aarch64-gcc-4.9"
-          tar -xzf "$HOME/gcc.tar.gz" -C "$HOME/aarch64-gcc-4.9"
-          TOOLBIN="$HOME/aarch64-gcc-4.9/bin"
-          test -x "$TOOLBIN/aarch64-linux-android-gcc"
-          "$TOOLBIN/aarch64-linux-android-gcc" --version
-          echo "$TOOLBIN" >> "$GITHUB_PATH"
+          git clone --depth=1 https://github.com/kdrag0n/proton-clang.git "$HOME/proton-clang"
+          test -x "$HOME/proton-clang/bin/clang"
+          "$HOME/proton-clang/bin/clang" --version
+          echo "$HOME/proton-clang/bin" >> "$GITHUB_PATH"
 
-      - name: Verify GCC
+      - name: Verify Clang
         run: |
           set -eux
-          command -v aarch64-linux-android-gcc
-          aarch64-linux-android-gcc --version
-          aarch64-linux-android-gcc -dumpmachine
+          command -v clang
+          clang --version
+          command -v ld.lld || true
+          command -v aarch64-linux-gnu-ld
 
       - name: Build YSL kernel
         run: |
           set -eux
           export ARCH=arm64
           export SUBARCH=arm64
-          export CROSS_COMPILE=aarch64-linux-android-
 
           unset CFLAGS CXXFLAGS CPPFLAGS KCFLAGS KCPPFLAGS
           unset HOST_EXTRACFLAGS HOST_EXTRACXXFLAGS
-          export HOSTCC=gcc
-          export HOSTCXX=g++
-          export HOSTCFLAGS="-O2 -std=gnu89"
-          export HOSTCXXFLAGS="-O2"
 
-          # GCC 4.9 does not support these newer compiler options.
-          sed -i 's/ -fsplit-loops//g' Makefile
-          sed -i '/KBUILD_CFLAGS  += -ftrivial-auto-var-init=zero/d' Makefile
-
-          make O=out ARCH=arm64 CROSS_COMPILE="$CROSS_COMPILE" msm8953_defconfig
+          make O=out ARCH=arm64 msm8953_defconfig
           scripts/config --file out/.config --disable CONFIG_CC_STACKPROTECTOR_STRONG
-          make O=out ARCH=arm64 CROSS_COMPILE="$CROSS_COMPILE" olddefconfig
-          make -j"$(nproc)" O=out ARCH=arm64 CROSS_COMPILE="$CROSS_COMPILE" HOSTCC=gcc HOSTCXX=g++
+          make O=out ARCH=arm64 olddefconfig
+
+          make -j"$(nproc)" \
+            O=out \
+            ARCH=arm64 \
+            CC=clang \
+            CROSS_COMPILE=aarch64-linux-gnu- \
+            AR=llvm-ar \
+            NM=llvm-nm \
+            OBJCOPY=llvm-objcopy \
+            OBJDUMP=llvm-objdump \
+            STRIP=llvm-strip
 
       - name: Collect kernel
         run: |
