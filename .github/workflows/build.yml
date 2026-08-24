@@ -15,24 +15,26 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y bc bison build-essential ccache flex libssl-dev libelf-dev python3 unzip zip wget
+          sudo apt-get install -y bc bison build-essential ccache flex libssl-dev libelf-dev python3 unzip zip wget xz-utils
 
-      - name: Install Android GCC 4.9 toolchain
+      - name: Install Google Android GCC 4.9 toolchain
         run: |
-          git clone --depth=1 https://github.com/Adrilaw/aarch64-linux-android-4.9-toolchain.git "$HOME/aarch64-gcc-4.9"
+          git clone --depth=1 --branch=android11-release https://github.com/GrowtopiaJaw/aarch64-linux-android-4.9.git "$HOME/aarch64-gcc-4.9"
           echo "$HOME/aarch64-gcc-4.9/bin" >> "$GITHUB_PATH"
 
       - name: Verify compiler
         run: |
           which aarch64-linux-android-gcc
           aarch64-linux-android-gcc --version
+          aarch64-linux-android-gcc -dumpmachine
 
       - name: Build kernel
         run: |
           export ARCH=arm64
           export SUBARCH=arm64
-          export CROSS_COMPILE=aarch64-linux-android-
+          export CROSS_COMPILE="$HOME/aarch64-gcc-4.9/bin/aarch64-linux-android-"
 
+          # Keep GitHub runner flags out of both host and target builds.
           unset CFLAGS CXXFLAGS CPPFLAGS KCFLAGS KCPPFLAGS
           unset HOST_EXTRACFLAGS HOST_EXTRACXXFLAGS
           export HOSTCC=gcc
@@ -41,16 +43,20 @@ jobs:
           export HOSTCXXFLAGS="-O2"
 
           make O=out ARCH=arm64 CROSS_COMPILE="$CROSS_COMPILE" msm8953_defconfig
+
+          # This legacy kernel's compiler check requires stack protector strong,
+          # but the selected Android GCC build cannot provide it reliably.
           scripts/config --file out/.config --disable CONFIG_CC_STACKPROTECTOR_STRONG
           make O=out ARCH=arm64 CROSS_COMPILE="$CROSS_COMPILE" olddefconfig
           grep -E '^CONFIG_CC_STACKPROTECTOR' out/.config || true
+
           make -j"$(nproc)" O=out ARCH=arm64 CROSS_COMPILE="$CROSS_COMPILE" HOSTCC=gcc HOSTCXX=g++
 
       - name: Collect kernel
         run: |
           mkdir -p artifacts
           find out/arch/arm64/boot -maxdepth 1 -type f -exec cp {} artifacts/ \; || true
-          find out -name 'dtb' -o -name 'dtbo.img' | while read f; do cp "$f" artifacts/; done || true
+          find out -type f \( -name 'dtb' -o -name 'dtbo.img' \) -exec cp {} artifacts/ \; || true
           ls -lah artifacts
 
       - name: Upload kernel artifacts
