@@ -52,6 +52,10 @@ jobs:
           export HOSTCFLAGS="-O2 -std=gnu89"
           export HOSTCXXFLAGS="-O2"
 
+          # GCC 4.9 does not support these newer compiler options.
+          sed -i 's/ -fsplit-loops//g' Makefile
+          sed -i '/KBUILD_CFLAGS  += -ftrivial-auto-var-init=zero/d' Makefile
+
           make O=out ARCH=arm64 CROSS_COMPILE="$CROSS_COMPILE" msm8953_defconfig
           scripts/config --file out/.config --disable CONFIG_CC_STACKPROTECTOR_STRONG
           make O=out ARCH=arm64 CROSS_COMPILE="$CROSS_COMPILE" olddefconfig
