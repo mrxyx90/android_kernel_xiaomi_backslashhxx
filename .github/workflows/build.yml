@@ -32,8 +32,6 @@ jobs:
           set -eux
           command -v arm-linux-gnueabi-gcc
           command -v arm-linux-gnueabi-ld
-          arm-linux-gnueabi-gcc --version
-          arm-linux-gnueabi-ld -v
 
       - name: Build YSL kernel
         run: |
@@ -92,55 +90,18 @@ jobs:
 
           DTB="$(find out_ysl/arch/arm64/boot/dts -type f -name '*.dtb' | grep -Ei 'ysl|8953.*mtp' | head -n1 || true)"
           if [ -z "$DTB" ]; then
-            echo 'No YSL DTB found. Built DTBs:'
-            find out_ysl/arch/arm64/boot/dts -type f -name '*.dtb' -print
+            echo 'No YSL DTB found'
             exit 1
           fi
 
           echo "Using DTB: $DTB"
           cat out_ysl/arch/arm64/boot/Image.gz "$DTB" > artifacts/Image.gz-dtb
           test -s artifacts/Image.gz-dtb
-          cp out_ysl/arch/arm64/boot/Image.gz artifacts/Image.gz
-          cp "$DTB" artifacts/ysl.dtb
-          ls -lh artifacts
+          ls -lh artifacts/Image.gz-dtb
 
-      - name: Build AnyKernel3 ZIP
-        run: |
-          set -eux
-          git clone --depth=1 https://github.com/osm0sis/AnyKernel3.git anykernel
-          rm -rf anykernel/.git anykernel/.github anykernel/README.md anykernel/tools
-          cp artifacts/Image.gz-dtb anykernel/Image.gz-dtb
-
-          cat > anykernel/anykernel.sh <<'EOF'
-          #!/sbin/sh
-          ## AnyKernel3 Ramdisk Mod Script
-          ## YSL / Xiaomi Redmi S2 / Y2
-
-          properties() { :; }
-          block=auto
-          is_slot_device=0
-          patch_vbmeta_flag=auto
-          no_block_image=false
-          do.devicecheck=0
-          do.modules=0
-          do.systemless=0
-          do.cleanup=1
-          do.cleanuponabort=0
-
-          . tools/ak3-core.sh
-          dump_boot
-          replace_kernel
-          flash_boot
-          EOF
-
-          chmod +x anykernel/anykernel.sh
-          (cd anykernel && zip -r9 ../YSL-AnyKernel.zip .)
-          test -s YSL-AnyKernel.zip
-          cp YSL-AnyKernel.zip artifacts/
-          ls -lh YSL-AnyKernel.zip artifacts/Image.gz-dtb
-
-      - name: Upload YSL artifacts
+      - name: Upload Image.gz-dtb only
         uses: actions/upload-artifact@v4
         with:
-          name: ysl-msm8953-kernel
-          path: artifacts/
+          name: ysl-Image.gz-dtb
+          path: artifacts/Image.gz-dtb
+          if-no-files-found: error
