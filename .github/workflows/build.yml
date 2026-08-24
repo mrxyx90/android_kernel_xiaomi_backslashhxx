@@ -1,9 +1,9 @@
-name: Build MSM8953 Kernel
+name: Build YSL Kernel
 
 on:
   workflow_dispatch:
   push:
-    branches: [ master ]
+    branches: [ ysl ]
 
 jobs:
   build:
@@ -11,34 +11,35 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          ref: ysl
 
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y bc bison build-essential ccache flex libssl-dev libelf-dev python3 unzip zip wget xz-utils
+          sudo apt-get install -y bc bison build-essential flex libssl-dev libelf-dev python3 unzip zip wget xz-utils
 
       - name: Download Android GCC 4.9 toolchain
         run: |
-          set -e
-          TOOLCHAIN_ROOT="$HOME/aarch64-gcc-4.9"
-          mkdir -p "$TOOLCHAIN_ROOT"
-          wget -q --show-progress -O "$HOME/aarch64-gcc-4.9.tar.gz" \
+          set -eux
+          wget -q --show-progress -O "$HOME/gcc.tar.gz" \
             "https://github.com/GrowtopiaJaw/aarch64-linux-android-4.9/archive/refs/heads/google.tar.gz"
-          tar -xzf "$HOME/aarch64-gcc-4.9.tar.gz" -C "$HOME"
-          mv "$HOME/aarch64-linux-android-4.9-google" "$TOOLCHAIN_ROOT/source"
-          test -x "$TOOLCHAIN_ROOT/source/aarch64-linux-android/bin/aarch64-linux-android-gcc"
-          ln -s "$TOOLCHAIN_ROOT/source/aarch64-linux-android" "$TOOLCHAIN_ROOT/aarch64-linux-android"
-          echo "$TOOLCHAIN_ROOT/aarch64-linux-android/bin" >> "$GITHUB_PATH"
+          mkdir -p "$HOME/aarch64-gcc-4.9"
+          tar -xzf "$HOME/gcc.tar.gz" -C "$HOME/aarch64-gcc-4.9" --strip-components=1
+          TOOLBIN="$HOME/aarch64-gcc-4.9/aarch64-linux-android/bin"
+          test -x "$TOOLBIN/aarch64-linux-android-gcc"
+          echo "$TOOLBIN" >> "$GITHUB_PATH"
 
-      - name: Verify compiler
+      - name: Verify GCC
         run: |
+          set -eux
           command -v aarch64-linux-android-gcc
           aarch64-linux-android-gcc --version
           aarch64-linux-android-gcc -dumpmachine
-          aarch64-linux-android-gcc -Q --help=common | grep stack-protector || true
 
-      - name: Build kernel
+      - name: Build YSL kernel
         run: |
+          set -eux
           export ARCH=arm64
           export SUBARCH=arm64
           export CROSS_COMPILE=aarch64-linux-android-
@@ -47,25 +48,24 @@ jobs:
           unset HOST_EXTRACFLAGS HOST_EXTRACXXFLAGS
           export HOSTCC=gcc
           export HOSTCXX=g++
-          export HOSTCFLAGS="-Wall -Wmissing-prototypes -Wstrict-prototypes -O2 -fomit-frame-pointer -std=gnu89"
+          export HOSTCFLAGS="-O2 -std=gnu89"
           export HOSTCXXFLAGS="-O2"
 
           make O=out ARCH=arm64 CROSS_COMPILE="$CROSS_COMPILE" msm8953_defconfig
           scripts/config --file out/.config --disable CONFIG_CC_STACKPROTECTOR_STRONG
           make O=out ARCH=arm64 CROSS_COMPILE="$CROSS_COMPILE" olddefconfig
-          grep -E '^CONFIG_CC_STACKPROTECTOR' out/.config || true
-
           make -j"$(nproc)" O=out ARCH=arm64 CROSS_COMPILE="$CROSS_COMPILE" HOSTCC=gcc HOSTCXX=g++
 
       - name: Collect kernel
         run: |
+          set -eux
           mkdir -p artifacts
-          find out/arch/arm64/boot -maxdepth 1 -type f -exec cp {} artifacts/ \; || true
-          find out -type f \( -name 'dtb' -o -name 'dtbo.img' \) -exec cp {} artifacts/ \; || true
+          find out/arch/arm64/boot -maxdepth 1 -type f -exec cp {} artifacts/ \;
+          find out -type f \( -name '*.dtb' -o -name 'dtb' -o -name 'dtbo.img' \) -exec cp {} artifacts/ \; || true
           ls -lah artifacts
 
-      - name: Upload kernel artifacts
+      - name: Upload YSL kernel
         uses: actions/upload-artifact@v4
         with:
-          name: msm8953-kernel
+          name: ysl-msm8953-kernel
           path: artifacts/
