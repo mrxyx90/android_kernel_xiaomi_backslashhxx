@@ -19,21 +19,16 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y bc bison build-essential flex libssl-dev libelf-dev python3 unzip zip wget xz-utils
 
-      - name: Download Android GCC 4.9 toolchain
+      - name: Download real Android GCC 4.9 prebuilt
         run: |
           set -eux
-          wget -q --show-progress -O "$HOME/gcc.tar.gz" \
-            "https://github.com/GrowtopiaJaw/aarch64-linux-android-4.9/archive/refs/heads/google.tar.gz"
+          GCC_URL="https://android.googlesource.com/platform/prebuilts/gcc/linux-x86/aarch64/aarch64-linux-android-4.9/+archive/89aa77dc369931868dce6924b7997e7e5f0fefe7.tar.gz"
+          wget -q --show-progress -O "$HOME/gcc.tar.gz" "$GCC_URL"
           mkdir -p "$HOME/aarch64-gcc-4.9"
-          tar -xzf "$HOME/gcc.tar.gz" -C "$HOME/aarch64-gcc-4.9" --strip-components=1
-
-          echo "Searching extracted toolchain for GCC..."
-          find "$HOME/aarch64-gcc-4.9" -type f -name 'aarch64-linux-android-gcc' -print
-
-          GCC_BIN="$(find "$HOME/aarch64-gcc-4.9" -type f -name 'aarch64-linux-android-gcc' -perm -111 -print -quit)"
-          test -n "$GCC_BIN"
-          TOOLBIN="$(dirname "$GCC_BIN")"
-          echo "GCC found at: $GCC_BIN"
+          tar -xzf "$HOME/gcc.tar.gz" -C "$HOME/aarch64-gcc-4.9"
+          TOOLBIN="$HOME/aarch64-gcc-4.9/bin"
+          test -x "$TOOLBIN/aarch64-linux-android-gcc"
+          "$TOOLBIN/aarch64-linux-android-gcc" --version
           echo "$TOOLBIN" >> "$GITHUB_PATH"
 
       - name: Verify GCC
