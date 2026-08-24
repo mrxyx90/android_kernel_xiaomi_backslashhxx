@@ -18,7 +18,7 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y bc bison build-essential ccache flex gcc-arm-linux-gnueabi binutils-arm-linux-gnueabi libssl-dev libelf-dev python3 rsync unzip zip wget xz-utils lz4 abootimg
+          sudo apt-get install -y bc bison build-essential ccache flex gcc-arm-linux-gnueabi binutils-arm-linux-gnueabi libssl-dev libelf-dev python3 rsync unzip zip wget xz-utils lz4
 
       - name: Download Proton Clang
         run: |
@@ -84,46 +84,60 @@ jobs:
           ccache -s
           rm -f /tmp/lineageos_xx_devicename
 
-      - name: Prepare YSL kernel
+      - name: Create YSL Image.gz-dtb
         run: |
           set -eux
           mkdir -p artifacts
-          test -f out_ysl/arch/arm64/boot/Image.gz || test -f out_ysl/arch/arm64/boot/Image
-          cp out_ysl/arch/arm64/boot/Image* artifacts/ || true
+          test -f out_ysl/arch/arm64/boot/Image.gz
 
-      - name: Fetch stock YSL boot image
-        run: |
-          set -eux
-          test -n "${{ vars.YSL_BOOT_IMG_URL }}"
-          wget -q -O stock-ysl-boot.img "${{ vars.YSL_BOOT_IMG_URL }}"
-          test -s stock-ysl-boot.img
-
-      - name: Repack YSL boot.img
-        run: |
-          set -eux
-          rm -rf boot-extracted
-          mkdir -p boot-extracted
-          abootimg -x stock-ysl-boot.img -o boot-extracted
-          test -f boot-extracted/bootimg.cfg
-          test -f boot-extracted/ramdisk.img
-
-          # The supplied stock YSL image is the known-good boot container.
-          # Preserve its header, ramdisk and boot arguments; replace only the kernel.
-          if [ -f out_ysl/arch/arm64/boot/Image.gz ]; then
-            cp out_ysl/arch/arm64/boot/Image.gz boot-extracted/zImage
-          else
-            cp out_ysl/arch/arm64/boot/Image boot-extracted/zImage
+          DTB="$(find out_ysl/arch/arm64/boot/dts -type f -name '*.dtb' | grep -Ei 'ysl|8953.*mtp' | head -n1 || true)"
+          if [ -z "$DTB" ]; then
+            echo 'No YSL DTB found. Built DTBs:'
+            find out_ysl/arch/arm64/boot/dts -type f -name '*.dtb' -print
+            exit 1
           fi
 
-          abootimg --create boot.img \
-            -f boot-extracted/bootimg.cfg \
-            -k boot-extracted/zImage \
-            -r boot-extracted/ramdisk.img
+          echo "Using DTB: $DTB"
+          cat out_ysl/arch/arm64/boot/Image.gz "$DTB" > artifacts/Image.gz-dtb
+          test -s artifacts/Image.gz-dtb
+          cp out_ysl/arch/arm64/boot/Image.gz artifacts/Image.gz
+          cp "$DTB" artifacts/ysl.dtb
+          ls -lh artifacts
 
-          test -s boot.img
-          abootimg -i boot.img
-          cp boot.img artifacts/boot.img
-          ls -lh artifacts/boot.img
+      - name: Build AnyKernel3 ZIP
+        run: |
+          set -eux
+          git clone --depth=1 https://github.com/osm0sis/AnyKernel3.git anykernel
+          rm -rf anykernel/.git anykernel/.github anykernel/README.md anykernel/tools
+          cp artifacts/Image.gz-dtb anykernel/Image.gz-dtb
+
+          cat > anykernel/anykernel.sh <<'EOF'
+          #!/sbin/sh
+          ## AnyKernel3 Ramdisk Mod Script
+          ## YSL / Xiaomi Redmi S2 / Y2
+
+          properties() { :; }
+          block=auto
+          is_slot_device=0
+          patch_vbmeta_flag=auto
+          no_block_image=false
+          do.devicecheck=0
+          do.modules=0
+          do.systemless=0
+          do.cleanup=1
+          do.cleanuponabort=0
+
+          . tools/ak3-core.sh
+          dump_boot
+          replace_kernel
+          flash_boot
+          EOF
+
+          chmod +x anykernel/anykernel.sh
+          (cd anykernel && zip -r9 ../YSL-AnyKernel.zip .)
+          test -s YSL-AnyKernel.zip
+          cp YSL-AnyKernel.zip artifacts/
+          ls -lh YSL-AnyKernel.zip artifacts/Image.gz-dtb
 
       - name: Upload YSL artifacts
         uses: actions/upload-artifact@v4
