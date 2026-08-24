@@ -18,7 +18,7 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y bc bison build-essential ccache flex libssl-dev libelf-dev python3 rsync unzip zip wget xz-utils lz4
+          sudo apt-get install -y bc bison build-essential ccache flex gcc-arm-linux-gnueabi binutils-arm-linux-gnueabi libssl-dev libelf-dev python3 rsync unzip zip wget xz-utils lz4
 
       - name: Download Proton Clang
         run: |
@@ -26,6 +26,14 @@ jobs:
           git clone --depth=1 https://github.com/kdrag0n/proton-clang.git "$HOME/proton-clang"
           test -x "$HOME/proton-clang/bin/clang"
           echo "$HOME/proton-clang/bin" >> "$GITHUB_PATH"
+
+      - name: Verify 32-bit toolchain for YSL vDSO
+        run: |
+          set -eux
+          command -v arm-linux-gnueabi-gcc
+          command -v arm-linux-gnueabi-ld
+          arm-linux-gnueabi-gcc --version
+          arm-linux-gnueabi-ld -v
 
       - name: Build YSL kernel
         run: |
@@ -64,6 +72,8 @@ jobs:
             CROSS_COMPILE=aarch64-linux-gnu- \
             CROSS_COMPILE_ARM32=arm-linux-gnueabi- \
             CROSS_COMPILE_COMPAT=arm-linux-gnueabi- \
+            CLANG_GCC32_TC='-gcc-toolchain /usr' \
+            CLANG_PREFIX32='--prefix=/usr/bin/arm-linux-gnueabi-' \
             LLVM=1 \
             LLVM_IAS=1 \
             INSTALL_MOD_STRIP=1 \
@@ -92,6 +102,9 @@ jobs:
           wget -q -O stock-ysl-boot.img "$YSL_BOOT_IMG_URL"
           mkdir -p boot-extracted
           abootimg -x stock-ysl-boot.img -o boot-extracted
+          test -f boot-extracted/bootimg.cfg
+          test -f boot-extracted/ramdisk.img
+          test -f out_ysl/arch/arm64/boot/Image.gz
           cp out_ysl/arch/arm64/boot/Image.gz boot-extracted/zImage
           abootimg --create boot.img \
             -f boot-extracted/bootimg.cfg \
