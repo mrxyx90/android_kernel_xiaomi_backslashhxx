@@ -1,4 +1,4 @@
-- name: Build YSL kernel
+name: Build YSL kernel
   run: |
     set -eux
 
