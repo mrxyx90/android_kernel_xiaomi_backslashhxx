@@ -46,7 +46,6 @@ jobs:
           rm -rf out_ysl
           mkdir -p out_ysl
 
-          echo 'CONFIG_LOCALVERSION="-ysl"' > /tmp/lineageos_xx_devicename
 
           # Verify all configuration fragments exist
           for f in \
@@ -62,8 +61,7 @@ jobs:
           ARCH=arm64 scripts/kconfig/merge_config.sh -O out_ysl \
             arch/arm64/configs/msm8953-perf_defconfig \
             arch/arm64/configs/xiaomi/xiaomi.config \
-            arch/arm64/configs/xiaomi/ysl.config \
-            /tmp/lineageos_xx_devicename
+            arch/arm64/configs/xiaomi/ysl.config
 
           # Resolve dependencies/defaults and generate final .config
           make ARCH=arm64 O=out_ysl olddefconfig
