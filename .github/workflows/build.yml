@@ -1,107 +1,110 @@
-name: Build YSL Kernel
+- name: Build YSL kernel
+  run: |
+    set -eux
 
-on:
-  workflow_dispatch:
-  push:
-    branches: [ ysl ]
+    export DEVICENAME=ysl
+    export ARCH=arm64
+    export SUBARCH=arm64
+    export HEADER_ARCH=arm64
+    export PATH="$HOME/proton-clang/bin:$PATH"
+    export CCACHE_DIR="$HOME/.ccache"
 
-jobs:
-  build:
-    runs-on: ubuntu-22.04
-    steps:
-      - name: Checkout YSL
-        uses: actions/checkout@v4
-        with:
-          ref: ysl
-          submodules: recursive
+    ccache -M 2G || true
 
-      - name: Install dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y bc bison build-essential ccache flex gcc-arm-linux-gnueabi binutils-arm-linux-gnueabi libssl-dev libelf-dev python3 rsync unzip zip wget xz-utils lz4
+    rm -rf out_ysl artifacts
+    mkdir -p out_ysl artifacts
 
-      - name: Download Proton Clang
-        run: |
-          set -eux
-          git clone --depth=1 https://github.com/kdrag0n/proton-clang.git "$HOME/proton-clang"
-          test -x "$HOME/proton-clang/bin/clang"
-          echo "$HOME/proton-clang/bin" >> "$GITHUB_PATH"
+    echo 'CONFIG_LOCALVERSION="-ysl"' > /tmp/lineageos_xx_devicename
 
-      - name: Verify 32-bit toolchain for YSL vDSO
-        run: |
-          set -eux
-          command -v arm-linux-gnueabi-gcc
-          command -v arm-linux-gnueabi-ld
+    # Verify all configuration fragments
+    for f in \
+      arch/arm64/configs/msm8953-perf_defconfig \
+      arch/arm64/configs/xiaomi/xiaomi.config \
+      arch/arm64/configs/xiaomi/ysl.config \
+      lineageos_xx_append \
+      lineageos_xx_vdso
+    do
+      echo "Checking $f"
+      test -f "$f"
+    done
 
-      - name: Build YSL kernel
-        run: |
-          set -eux
-          export DEVICENAME=ysl
-          export ARCH=arm64
-          export SUBARCH=arm64
-          export HEADER_ARCH=arm64
-          export PATH="$HOME/proton-clang/bin:$PATH"
-          export CCACHE_DIR="$HOME/.ccache"
-          ccache -M 2G || true
+    # Merge configuration fragments
+    ARCH=arm64 scripts/kconfig/merge_config.sh -O out_ysl \
+      arch/arm64/configs/msm8953-perf_defconfig \
+      arch/arm64/configs/xiaomi/xiaomi.config \
+      arch/arm64/configs/xiaomi/ysl.config \
+      lineageos_xx_append \
+      lineageos_xx_vdso \
+      /tmp/lineageos_xx_devicename
 
-          rm -rf out_ysl
-          mkdir -p out_ysl
-          echo 'CONFIG_LOCALVERSION="-ysl"' > /tmp/lineageos_xx_devicename
+    # Resolve dependencies/defaults and create final .config
+    make ARCH=arm64 O=out_ysl olddefconfig
 
-          ARCH=arm64 scripts/kconfig/merge_config.sh -O out_ysl \
-            arch/arm64/configs/msm8953-perf_defconfig \
-            arch/arm64/configs/xiaomi/xiaomi.config \
-            arch/arm64/configs/xiaomi/ysl.config \
-            lineageos_xx_append \
-            lineageos_xx_vdso \
-            /tmp/lineageos_xx_devicename
+    echo "===== FINAL CONFIG ====="
+    grep -E \
+      'CONFIG_(LOCALVERSION|MACH_XIAOMI_YSL|SECURITY_SELINUX|MODULES|MODVERSIONS)' \
+      out_ysl/.config
 
-          make -j"$(nproc)" \
-            ARCH=arm64 SUBARCH=arm64 O=out_ysl \
-            CC='ccache clang' \
-            AS=clang \
-            AR=llvm-ar \
-            NM=llvm-nm \
-            LD=ld.lld \
-            OBJCOPY=llvm-objcopy \
-            OBJDUMP=llvm-objdump \
-            STRIP=llvm-strip \
-            CLANG_TRIPLE=aarch64-linux-gnu- \
-            CROSS_COMPILE=aarch64-linux-gnu- \
-            CROSS_COMPILE_ARM32=arm-linux-gnueabi- \
-            CROSS_COMPILE_COMPAT=arm-linux-gnueabi- \
-            CLANG_GCC32_TC='-gcc-toolchain /usr' \
-            CLANG_PREFIX32='--prefix=/usr/bin/arm-linux-gnueabi-' \
-            LLVM=1 \
-            LLVM_IAS=1 \
-            INSTALL_MOD_STRIP=1 \
-            KBUILD_BUILD_USER="$(git rev-parse --short HEAD | cut -c1-7)" \
-            KBUILD_BUILD_HOST="$(git symbolic-ref --short HEAD)" \
-            KBUILD_BUILD_FEATURES='source: https://github.com/backslashxx/msm8953-kernel //'
+    # Build kernel
+    make -j"$(nproc)" \
+      ARCH=arm64 \
+      SUBARCH=arm64 \
+      O=out_ysl \
+      CC='ccache clang' \
+      AS=clang \
+      AR=llvm-ar \
+      NM=llvm-nm \
+      LD=ld.lld \
+      OBJCOPY=llvm-objcopy \
+      OBJDUMP=llvm-objdump \
+      STRIP=llvm-strip \
+      CLANG_TRIPLE=aarch64-linux-gnu- \
+      CROSS_COMPILE=aarch64-linux-gnu- \
+      CROSS_COMPILE_ARM32=arm-linux-gnueabi- \
+      CROSS_COMPILE_COMPAT=arm-linux-gnueabi- \
+      CLANG_GCC32_TC='-gcc-toolchain /usr' \
+      CLANG_PREFIX32='--prefix=/usr/bin/arm-linux-gnueabi-' \
+      LLVM=1 \
+      LLVM_IAS=1 \
+      INSTALL_MOD_STRIP=1 \
+      KBUILD_BUILD_USER="$(git rev-parse --short HEAD | cut -c1-7)" \
+      KBUILD_BUILD_HOST="$(git symbolic-ref --short HEAD)" \
+      KBUILD_BUILD_FEATURES='source: https://github.com/backslashxx/msm8953-kernel //'
 
-          ccache -s
-          rm -f /tmp/lineageos_xx_devicename
+    ccache -s
 
-      - name: Create YSL Image.gz-dtb
-        run: |
-          set -eux
-          mkdir -p artifacts
-          test -f out_ysl/arch/arm64/boot/Image.gz
+    # Verify kernel image
+    test -f out_ysl/arch/arm64/boot/Image.gz
 
-          DTB="$(find out_ysl/arch/arm64/boot/dts -type f -name '*.dtb' | grep -Ei 'ysl|8953.*mtp' | head -n1 || true)"
-          if [ -z "$DTB" ]; then
-            echo 'No YSL DTB found'
-            exit 1
-          fi
+    # Find YSL DTB
+    DTB="$(find out_ysl/arch/arm64/boot/dts \
+      -type f -name '*.dtb' \
+      | grep -Ei 'ysl|8953.*mtp' \
+      | head -n1 || true)"
 
-          echo "Using DTB: $DTB"
-          cat out_ysl/arch/arm64/boot/Image.gz "$DTB" > artifacts/Image.gz-dtb
-          test -s artifacts/Image.gz-dtb
-          ls -lh artifacts/Image.gz-dtb
+    if [ -z "$DTB" ]; then
+      echo "ERROR: No YSL DTB found"
+      exit 1
+    fi
 
-      - name: Upload Image.gz-dtb only
-        uses: actions/upload-artifact@v4
-        with:
-          name: ysl-Image.gz-dtb
-          path: artifacts/Image.gz-dtb
-          if-no-files-found: error
+    echo "Using DTB: $DTB"
+
+    # Create Image.gz-dtb
+    cat \
+      out_ysl/arch/arm64/boot/Image.gz \
+      "$DTB" \
+      > artifacts/Image.gz-dtb
+
+    test -s artifacts/Image.gz-dtb
+
+    echo "===== OUTPUT ====="
+    ls -lh artifacts/Image.gz-dtb
+
+    rm -f /tmp/lineageos_xx_devicename
+
+- name: Upload Image.gz-dtb
+  uses: actions/upload-artifact@v4
+  with:
+    name: ysl-Image.gz-dtb
+    path: artifacts/Image.gz-dtb
+    if-no-files-found: error
