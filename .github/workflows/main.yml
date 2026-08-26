@@ -2,8 +2,6 @@ name: Build YSL Kernel
 
 on:
   workflow_dispatch:
-  push:
-    branches: [ ysl ]
 
 jobs:
   build:
