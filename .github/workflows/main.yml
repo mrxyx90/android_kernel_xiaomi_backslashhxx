@@ -6,31 +6,53 @@ on:
 jobs:
   build:
     runs-on: ubuntu-22.04
+
     steps:
-      - name: Checkout YSL
+      - name: Checkout
         uses: actions/checkout@v4
         with:
           submodules: recursive
 
       - name: Install dependencies
         run: |
+          set -eux
           sudo apt-get update
-          sudo apt-get install -y bc bison build-essential ccache flex gcc-arm-linux-gnueabi binutils-arm-linux-gnueabi libssl-dev libelf-dev python3 rsync unzip zip wget xz-utils lz4
+          sudo apt-get install -y \
+            bc \
+            bison \
+            build-essential \
+            ccache \
+            flex \
+            gcc-arm-linux-gnueabi \
+            binutils-arm-linux-gnueabi \
+            libssl-dev \
+            libelf-dev \
+            python3 \
+            rsync \
+            unzip \
+            zip \
+            wget \
+            xz-utils \
+            lz4
 
       - name: Download Proton Clang
         run: |
           set -eux
-          git clone --depth=1 https://github.com/kdrag0n/proton-clang.git "$HOME/proton-clang"
+          git clone --depth=1 \
+            https://github.com/kdrag0n/proton-clang.git \
+            "$HOME/proton-clang"
+
           test -x "$HOME/proton-clang/bin/clang"
           echo "$HOME/proton-clang/bin" >> "$GITHUB_PATH"
 
-      - name: Verify 32-bit toolchain for YSL vDSO
+      - name: Verify 32-bit toolchain
         run: |
           set -eux
           command -v arm-linux-gnueabi-gcc
           command -v arm-linux-gnueabi-ld
 
       - name: Build YSL kernel
+        shell: bash
         run: |
           set -eux
 
@@ -46,34 +68,30 @@ jobs:
           rm -rf out_ysl
           mkdir -p out_ysl
 
+          # Verify required YSL configuration fragments.
+          test -f arch/arm64/configs/msm8953-perf_defconfig
+          test -f arch/arm64/configs/xiaomi/xiaomi.config
+          test -f arch/arm64/configs/xiaomi/ysl.config
 
-          # Verify all configuration fragments exist
-          for f in \
-            arch/arm64/configs/msm8953-perf_defconfig \
-            arch/arm64/configs/xiaomi/xiaomi.config \
-            arch/arm64/configs/xiaomi/ysl.config \
-          do
-            echo "Checking $f"
-            test -f "$f"
-          done
-
-          # Merge all configuration fragments
+          # Merge YSL configuration.
           ARCH=arm64 scripts/kconfig/merge_config.sh -O out_ysl \
             arch/arm64/configs/msm8953-perf_defconfig \
             arch/arm64/configs/xiaomi/xiaomi.config \
             arch/arm64/configs/xiaomi/ysl.config
 
-          # Resolve dependencies/defaults and generate final .config
+          # Resolve dependencies and generate final .config.
           make ARCH=arm64 O=out_ysl olddefconfig
 
           echo "===== FINAL CONFIG ====="
           grep -E \
-            'CONFIG_(LOCALVERSION|MACH_XIAOMI_YSL|SECURITY_SELINUX|MODULES|MODVERSIONS)' \
-            out_ysl/.config
+            '^(CONFIG_LOCALVERSION=|CONFIG_MACH_XIAOMI_YSL=|CONFIG_SECURITY_SELINUX=|CONFIG_MODULES=|# CONFIG_MODULES is not set|CONFIG_MODVERSIONS=|CONFIG_COMPAT_VDSO=)' \
+            out_ysl/.config || true
 
-          # Build kernel
+          # Build kernel.
           make -j"$(nproc)" \
-            ARCH=arm64 SUBARCH=arm64 O=out_ysl \
+            ARCH=arm64 \
+            SUBARCH=arm64 \
+            O=out_ysl \
             CC='ccache clang' \
             AS=clang \
             AR=llvm-ar \
@@ -92,26 +110,36 @@ jobs:
             LLVM_IAS=1 \
             INSTALL_MOD_STRIP=1 \
             KBUILD_BUILD_USER="$(git rev-parse --short HEAD | cut -c1-7)" \
-            KBUILD_BUILD_HOST="$(git symbolic-ref --short HEAD)" \
+            KBUILD_BUILD_HOST="$(git symbolic-ref --short HEAD || echo detached)" \
             KBUILD_BUILD_FEATURES='source: https://github.com/backslashxx/msm8953-kernel //'
 
           ccache -s
-          rm -f /tmp/lineageos_xx_devicename
 
       - name: Create YSL Image.gz-dtb
+        shell: bash
         run: |
           set -eux
 
+          rm -rf artifacts
           mkdir -p artifacts
+
           test -f out_ysl/arch/arm64/boot/Image.gz
 
-          DTB="$(find out_ysl/arch/arm64/boot/dts \
-            -type f -name '*.dtb' \
+          DTB="$(
+            find out_ysl/arch/arm64/boot/dts \
+              -type f \
+              -name '*.dtb' \
             | grep -Ei 'ysl|8953.*mtp' \
-            | head -n1 || true)"
+            | head -n1 || true
+          )"
 
           if [ -z "$DTB" ]; then
-            echo 'No YSL DTB found'
+            echo "ERROR: No YSL DTB found"
+            echo "Available DTBs:"
+            find out_ysl/arch/arm64/boot/dts \
+              -type f \
+              -name '*.dtb' \
+              -print
             exit 1
           fi
 
@@ -123,9 +151,11 @@ jobs:
             > artifacts/Image.gz-dtb
 
           test -s artifacts/Image.gz-dtb
+
+          echo "===== OUTPUT ====="
           ls -lh artifacts/Image.gz-dtb
 
-      - name: Upload Image.gz-dtb only
+      - name: Upload Image.gz-dtb
         uses: actions/upload-artifact@v4
         with:
           name: ysl-Image.gz-dtb
