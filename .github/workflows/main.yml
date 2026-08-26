@@ -8,7 +8,7 @@ jobs:
     runs-on: ubuntu-22.04
 
     steps:
-      - name: Checkout
+      - name: Checkout YSL
         uses: actions/checkout@v4
         with:
           submodules: recursive
@@ -16,7 +16,9 @@ jobs:
       - name: Install dependencies
         run: |
           set -eux
+
           sudo apt-get update
+
           sudo apt-get install -y \
             bc \
             bison \
@@ -38,18 +40,24 @@ jobs:
       - name: Download Proton Clang
         run: |
           set -eux
+
           git clone --depth=1 \
             https://github.com/kdrag0n/proton-clang.git \
             "$HOME/proton-clang"
 
           test -x "$HOME/proton-clang/bin/clang"
+
           echo "$HOME/proton-clang/bin" >> "$GITHUB_PATH"
 
-      - name: Verify 32-bit toolchain
+      - name: Verify 32-bit toolchain for YSL vDSO
         run: |
           set -eux
+
           command -v arm-linux-gnueabi-gcc
           command -v arm-linux-gnueabi-ld
+
+          arm-linux-gnueabi-gcc --version
+          arm-linux-gnueabi-ld --version
 
       - name: Build YSL kernel
         shell: bash
@@ -68,21 +76,34 @@ jobs:
           rm -rf out_ysl
           mkdir -p out_ysl
 
-          # Verify required YSL configuration fragments.
-          test -f arch/arm64/configs/msm8953-perf_defconfig
-          test -f arch/arm64/configs/xiaomi/xiaomi.config
-          test -f arch/arm64/configs/xiaomi/ysl.config
+          # Force YSL kernel local version.
+          echo 'CONFIG_LOCALVERSION="-ysl"' > /tmp/lineageos_xx_devicename
+
+          # Verify all required configuration fragments.
+          for f in \
+            arch/arm64/configs/msm8953-perf_defconfig \
+            arch/arm64/configs/xiaomi/xiaomi.config \
+            arch/arm64/configs/xiaomi/ysl.config
+          do
+            echo "Checking $f"
+            test -f "$f"
+          done
 
           # Merge YSL configuration.
           ARCH=arm64 scripts/kconfig/merge_config.sh -O out_ysl \
             arch/arm64/configs/msm8953-perf_defconfig \
             arch/arm64/configs/xiaomi/xiaomi.config \
-            arch/arm64/configs/xiaomi/ysl.config
+            arch/arm64/configs/xiaomi/ysl.config \
+            /tmp/lineageos_xx_devicename
 
           # Resolve dependencies and generate final .config.
-          make ARCH=arm64 O=out_ysl olddefconfig
+          make \
+            ARCH=arm64 \
+            O=out_ysl \
+            olddefconfig
 
           echo "===== FINAL CONFIG ====="
+
           grep -E \
             '^(CONFIG_LOCALVERSION=|CONFIG_MACH_XIAOMI_YSL=|CONFIG_SECURITY_SELINUX=|CONFIG_MODULES=|# CONFIG_MODULES is not set|CONFIG_MODVERSIONS=|CONFIG_COMPAT_VDSO=)' \
             out_ysl/.config || true
@@ -115,6 +136,8 @@ jobs:
 
           ccache -s
 
+          rm -f /tmp/lineageos_xx_devicename
+
       - name: Create YSL Image.gz-dtb
         shell: bash
         run: |
@@ -123,23 +146,28 @@ jobs:
           rm -rf artifacts
           mkdir -p artifacts
 
-          test -f out_ysl/arch/arm64/boot/Image.gz
+          test -s out_ysl/arch/arm64/boot/Image.gz
+
+          echo "===== SEARCHING FOR YSL DTB ====="
 
           DTB="$(
             find out_ysl/arch/arm64/boot/dts \
               -type f \
               -name '*.dtb' \
-            | grep -Ei 'ysl|8953.*mtp' \
-            | head -n1 || true
+              -print \
+              | grep -Ei 'ysl|8953.*mtp' \
+              | head -n1 || true
           )"
 
           if [ -z "$DTB" ]; then
             echo "ERROR: No YSL DTB found"
+            echo
             echo "Available DTBs:"
             find out_ysl/arch/arm64/boot/dts \
               -type f \
               -name '*.dtb' \
-              -print
+              -print \
+              | sort
             exit 1
           fi
 
@@ -155,7 +183,7 @@ jobs:
           echo "===== OUTPUT ====="
           ls -lh artifacts/Image.gz-dtb
 
-      - name: Upload Image.gz-dtb
+      - name: Upload YSL Image.gz-dtb
         uses: actions/upload-artifact@v4
         with:
           name: ysl-Image.gz-dtb
