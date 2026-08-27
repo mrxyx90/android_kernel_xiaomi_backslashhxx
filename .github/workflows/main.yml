@@ -80,7 +80,7 @@ jobs:
           echo 'CONFIG_LOCALVERSION="-ysl"' > /tmp/lineageos_xx_devicename
 
           # Verify all required configuration fragments.
-                   for f in \
+          for f in \
             arch/arm64/configs/msm8953-perf_defconfig \
             arch/arm64/configs/xiaomi/xiaomi.config \
             arch/arm64/configs/xiaomi/ysl.config \
