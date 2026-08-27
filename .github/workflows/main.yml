@@ -84,8 +84,7 @@ jobs:
             arch/arm64/configs/msm8953-perf_defconfig \
             arch/arm64/configs/xiaomi/xiaomi.config \
             arch/arm64/configs/xiaomi/ysl.config \
-            lineageos_xx_append \
-            lineageos_xx_vdso
+            lineageos_xx_append
           do
             echo "Checking $f"
             test -f "$f"
@@ -97,7 +96,6 @@ jobs:
             arch/arm64/configs/xiaomi/xiaomi.config \
             arch/arm64/configs/xiaomi/ysl.config \
             lineageos_xx_append \
-            lineageos_xx_vdso \
             /tmp/lineageos_xx_devicename
 
           # Resolve dependencies and generate final .config.
