@@ -24,7 +24,10 @@ CONFIG_CPU_BOOST=n
 CONFIG_SCHED_TUNE=n
 CONFIG_SCHED_CORE_CTL=n
 ###########################################################
-
+CONFIG_KPROBES=n
+CONFIG_HAVE_KPROBES=n
+CONFIG_KPROBE_EVENTS=n
+CONFIG_KPROBE_EVENT=n
 CONFIG_MODULE_SIG=n
 #########################################################
 ################################
