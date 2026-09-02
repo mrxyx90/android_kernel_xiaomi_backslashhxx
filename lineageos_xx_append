@@ -193,25 +193,3 @@ CONFIG_AUDIT=n
 CONFIG_SOCK_DIAG=n
 CONFIG_PROC_STRIPPED=y
 CONFIG_TRIM_UNUSED_KSYMS=y
-
-# ---------------------------------------------------------
-# Intentionally omitted
-# ---------------------------------------------------------
-# CONFIG_STACKTRACE_SUPPORT
-# CONFIG_SBALANCE_EXCLUDE_CPUS
-# CONFIG_ZRAM_ENTROPY
-# CONFIG_ZRAM_ENTROPY_THRESHOLD
-# CONFIG_WQ_POWER_EFFICIENT_DEFAULT
-#
-# CONFIG_CFQ_GROUP_IOSCHED
-# CONFIG_BFQ_GROUP_IOSCHED
-#
-# Security mitigation overrides:
-#   kpti=0
-#   CONFIG_HARDEN_BRANCH_PREDICTOR=n
-#   CONFIG_ARM64_SSBD=n
-#   CONFIG_MITIGATE_SPECTRE_BRANCH_HISTORY=n
-#
-# =========================================================
-# End — SD625 3GB Production / Maximum Smoothness
-# =========================================================
