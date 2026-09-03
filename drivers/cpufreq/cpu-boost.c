@@ -329,7 +329,9 @@ static int cpu_boost_init(void)
 	// alex.naidis@paranoidandroid.co Rework scheduling setup - start
 	struct sched_param param = { .sched_priority = 2 };
 	cpumask_t sys_bg_mask;
-
+	
+    cpumask_clear(&sys_bg_mask);
+	
 	/* Hardcode the cpumask to bind the kthread to it */
 	for (i = 0; i <= 2; i++) {
 		cpumask_set_cpu(i, &sys_bg_mask);
