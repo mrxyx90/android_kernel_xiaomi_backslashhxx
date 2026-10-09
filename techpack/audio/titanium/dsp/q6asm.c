@@ -764,7 +764,7 @@ done:
 int send_asm_custom_topology(struct audio_client *ac)
 {
 	struct cal_block_data		*cal_block = NULL;
-	struct cmd_set_topologies	asm_top;
+	struct cmd_set_topologies	asm_top __aligned(4);
 	int result = 0;
 	int result1 = 0;
 
@@ -2824,7 +2824,7 @@ static int __q6asm_open_read(struct audio_client *ac,
 			     bool ts_mode)
 {
 	int rc = 0x00;
-	struct asm_stream_cmd_open_read_v3 open;
+	struct asm_stream_cmd_open_read_v3 open __aligned(4);
 	struct q6asm_cal_info cal_info;
 
 	config_debug_fs_reset_index();
@@ -3027,7 +3027,7 @@ int q6asm_open_write_compressed(struct audio_client *ac, uint32_t format,
 				uint32_t passthrough_flag)
 {
 	int rc = 0;
-	struct asm_stream_cmd_open_write_compressed open;
+	struct asm_stream_cmd_open_write_compressed open __aligned(4);
 
 	if (ac == NULL) {
 		pr_err("%s: ac[%pK] NULL\n",  __func__, ac);
@@ -3134,7 +3134,7 @@ static int __q6asm_open_write(struct audio_client *ac, uint32_t format,
 			      uint32_t pcm_format_block_ver)
 {
 	int rc = 0x00;
-	struct asm_stream_cmd_open_write_v3 open;
+	struct asm_stream_cmd_open_write_v3 open __aligned(4);
 	struct q6asm_cal_info cal_info;
 
 	if (ac == NULL) {
@@ -3422,7 +3422,7 @@ static int __q6asm_open_read_write(struct audio_client *ac, uint32_t rd_format,
 				   bool overwrite_topology, int topology)
 {
 	int rc = 0x00;
-	struct asm_stream_cmd_open_readwrite_v2 open;
+	struct asm_stream_cmd_open_readwrite_v2 open __aligned(4);
 	struct q6asm_cal_info cal_info;
 
 	if (ac == NULL) {
@@ -3657,7 +3657,7 @@ int q6asm_open_loopback_v2(struct audio_client *ac, uint16_t bits_per_sample)
 	pr_debug("%s: session[%d]\n", __func__, ac->session);
 
 	if (ac->perf_mode == LOW_LATENCY_PCM_MODE) {
-		struct asm_stream_cmd_open_transcode_loopback_t open;
+		struct asm_stream_cmd_open_transcode_loopback_t open __aligned(4);
 
 		q6asm_add_hdr(ac, (struct apr_hdr *)&open, sizeof(open), TRUE);
 		atomic_set(&ac->cmd_state, -1);
@@ -3691,7 +3691,7 @@ int q6asm_open_loopback_v2(struct audio_client *ac, uint16_t bits_per_sample)
 			goto fail_cmd;
 		}
 	} else {/*if(ac->perf_mode == LEGACY_PCM_MODE)*/
-		struct asm_stream_cmd_open_loopback_v2 open;
+		struct asm_stream_cmd_open_loopback_v2 open __aligned(4);
 
 		q6asm_add_hdr(ac, (struct apr_hdr *)&open, sizeof(open), TRUE);
 		atomic_set(&ac->cmd_state, -1);
@@ -3758,7 +3758,7 @@ int q6asm_open_transcode_loopback(struct audio_client *ac,
 			uint32_t source_format, uint32_t sink_format)
 {
 	int rc = 0x00;
-	struct asm_stream_cmd_open_transcode_loopback_t open;
+	struct asm_stream_cmd_open_transcode_loopback_t open __aligned(4);
 	struct q6asm_cal_info cal_info;
 
 	if (ac == NULL) {
@@ -4253,7 +4253,7 @@ EXPORT_SYMBOL(q6asm_get_shared_pos);
 int q6asm_run(struct audio_client *ac, uint32_t flags,
 		uint32_t msw_ts, uint32_t lsw_ts)
 {
-	struct asm_session_cmd_run_v2 run;
+	struct asm_session_cmd_run_v2 run __aligned(4);
 	int rc;
 
 	if (ac == NULL) {
@@ -4310,7 +4310,7 @@ EXPORT_SYMBOL(q6asm_run);
 static int __q6asm_run_nowait(struct audio_client *ac, uint32_t flags,
 		uint32_t msw_ts, uint32_t lsw_ts, uint32_t stream_id)
 {
-	struct asm_session_cmd_run_v2 run;
+	struct asm_session_cmd_run_v2 run __aligned(4);
 	int rc;
 
 	if (ac == NULL) {
@@ -4381,7 +4381,7 @@ int q6asm_enc_cfg_blk_aac(struct audio_client *ac,
 			uint32_t sample_rate, uint32_t channels,
 			uint32_t bit_rate, uint32_t mode, uint32_t format)
 {
-	struct asm_aac_enc_cfg_v2 enc_cfg;
+	struct asm_aac_enc_cfg_v2 enc_cfg __aligned(4);
 	int rc = 0;
 
 	pr_debug("%s: session[%d]frames[%d]SR[%d]ch[%d]bitrate[%d]mode[%d] format[%d]\n",
@@ -4447,7 +4447,7 @@ int q6asm_enc_cfg_blk_g711(struct audio_client *ac,
 			uint32_t frames_per_buf,
 			uint32_t sample_rate)
 {
-	struct asm_g711_enc_cfg_v2 enc_cfg;
+	struct asm_g711_enc_cfg_v2 enc_cfg __aligned(4);
 	int rc = 0;
 
 	pr_debug("%s: session[%d]frames[%d]SR[%d]\n",
@@ -4507,7 +4507,7 @@ EXPORT_SYMBOL(q6asm_enc_cfg_blk_g711);
 int q6asm_set_encdec_chan_map(struct audio_client *ac,
 			uint32_t num_channels)
 {
-	struct asm_dec_out_chan_map_param chan_map;
+	struct asm_dec_out_chan_map_param chan_map __aligned(4);
 	u8 *channel_mapping;
 	int rc = 0;
 
@@ -4585,7 +4585,7 @@ static int q6asm_enc_cfg_blk_pcm_v5(struct audio_client *ac,
 			     uint16_t sample_word_size, uint16_t endianness,
 			     uint16_t mode)
 {
-	struct asm_multi_channel_pcm_enc_cfg_v5 enc_cfg;
+	struct asm_multi_channel_pcm_enc_cfg_v5 enc_cfg __aligned(4);
 	struct asm_enc_cfg_blk_param_v2 enc_fg_blk;
 	u8 *channel_mapping;
 	u32 frames_per_buf = 0;
@@ -4693,7 +4693,7 @@ int q6asm_enc_cfg_blk_pcm_v4(struct audio_client *ac,
 			     uint16_t sample_word_size, uint16_t endianness,
 			     uint16_t mode)
 {
-	struct asm_multi_channel_pcm_enc_cfg_v4 enc_cfg;
+	struct asm_multi_channel_pcm_enc_cfg_v4 enc_cfg __aligned(4);
 	struct asm_enc_cfg_blk_param_v2 enc_fg_blk;
 	u8 *channel_mapping;
 	u32 frames_per_buf = 0;
@@ -4798,7 +4798,7 @@ int q6asm_enc_cfg_blk_pcm_v3(struct audio_client *ac,
 			     bool use_back_flavor, u8 *channel_map,
 			     uint16_t sample_word_size)
 {
-	struct asm_multi_channel_pcm_enc_cfg_v3 enc_cfg;
+	struct asm_multi_channel_pcm_enc_cfg_v3 enc_cfg __aligned(4);
 	struct asm_enc_cfg_blk_param_v2 enc_fg_blk;
 	u8 *channel_mapping;
 	u32 frames_per_buf = 0;
@@ -4901,7 +4901,7 @@ int q6asm_enc_cfg_blk_pcm_v2(struct audio_client *ac,
 		uint32_t rate, uint32_t channels, uint16_t bits_per_sample,
 		bool use_default_chmap, bool use_back_flavor, u8 *channel_map)
 {
-	struct asm_multi_channel_pcm_enc_cfg_v2  enc_cfg;
+	struct asm_multi_channel_pcm_enc_cfg_v2  enc_cfg __aligned(4);
 	u8 *channel_mapping;
 	u32 frames_per_buf = 0;
 
@@ -5129,7 +5129,7 @@ EXPORT_SYMBOL(q6asm_enc_cfg_blk_pcm_format_support_v5);
 int q6asm_enc_cfg_blk_pcm_native(struct audio_client *ac,
 			uint32_t rate, uint32_t channels)
 {
-	struct asm_multi_channel_pcm_enc_cfg_v2  enc_cfg;
+	struct asm_multi_channel_pcm_enc_cfg_v2  enc_cfg __aligned(4);
 	u8 *channel_mapping;
 	u32 frames_per_buf = 0;
 	int rc = 0;
@@ -5348,7 +5348,7 @@ static int q6asm_map_channels(u8 *channel_mapping, uint32_t channels,
 int q6asm_enable_sbrps(struct audio_client *ac,
 			uint32_t sbr_ps_enable)
 {
-	struct asm_aac_sbr_ps_flag_param  sbrps;
+	struct asm_aac_sbr_ps_flag_param  sbrps __aligned(4);
 	u32 frames_per_buf = 0;
 
 	int rc = 0;
@@ -5411,7 +5411,7 @@ EXPORT_SYMBOL(q6asm_enable_sbrps);
 int q6asm_cfg_dual_mono_aac(struct audio_client *ac,
 			uint16_t sce_left, uint16_t sce_right)
 {
-	struct asm_aac_dual_mono_mapping_param dual_mono;
+	struct asm_aac_dual_mono_mapping_param dual_mono __aligned(4);
 
 	int rc = 0;
 
@@ -5461,7 +5461,7 @@ EXPORT_SYMBOL(q6asm_cfg_dual_mono_aac);
 /* Support for selecting stereo mixing coefficients for B family not done */
 int q6asm_cfg_aac_sel_mix_coef(struct audio_client *ac, uint32_t mix_coeff)
 {
-	struct asm_aac_stereo_mix_coeff_selection_param_v2 aac_mix_coeff;
+	struct asm_aac_stereo_mix_coeff_selection_param_v2 aac_mix_coeff __aligned(4);
 	int rc = 0;
 
 	q6asm_add_hdr(ac, (struct apr_hdr *)&aac_mix_coeff, sizeof(aac_mix_coeff), TRUE);
@@ -5521,7 +5521,7 @@ int q6asm_enc_cfg_blk_qcelp(struct audio_client *ac, uint32_t frames_per_buf,
 		uint16_t min_rate, uint16_t max_rate,
 		uint16_t reduced_rate_level, uint16_t rate_modulation_cmd)
 {
-	struct asm_v13k_enc_cfg enc_cfg;
+	struct asm_v13k_enc_cfg enc_cfg __aligned(4);
 	int rc = 0;
 
 	pr_debug("%s: session[%d]frames[%d]min_rate[0x%4x]max_rate[0x%4x] reduced_rate_level[0x%4x]rate_modulation_cmd[0x%4x]\n",
@@ -5589,7 +5589,7 @@ int q6asm_enc_cfg_blk_evrc(struct audio_client *ac, uint32_t frames_per_buf,
 		uint16_t min_rate, uint16_t max_rate,
 		uint16_t rate_modulation_cmd)
 {
-	struct asm_evrc_enc_cfg enc_cfg;
+	struct asm_evrc_enc_cfg enc_cfg __aligned(4);
 	int rc = 0;
 
 	pr_debug("%s: session[%d]frames[%d]min_rate[0x%4x]max_rate[0x%4x] rate_modulation_cmd[0x%4x]\n",
@@ -5653,7 +5653,7 @@ EXPORT_SYMBOL(q6asm_enc_cfg_blk_evrc);
 int q6asm_enc_cfg_blk_amrnb(struct audio_client *ac, uint32_t frames_per_buf,
 			uint16_t band_mode, uint16_t dtx_enable)
 {
-	struct asm_amrnb_enc_cfg enc_cfg;
+	struct asm_amrnb_enc_cfg enc_cfg __aligned(4);
 	int rc = 0;
 
 	pr_debug("%s: session[%d]frames[%d]band_mode[0x%4x]dtx_enable[0x%4x]\n",
@@ -5714,7 +5714,7 @@ EXPORT_SYMBOL(q6asm_enc_cfg_blk_amrnb);
 int q6asm_enc_cfg_blk_amrwb(struct audio_client *ac, uint32_t frames_per_buf,
 			uint16_t band_mode, uint16_t dtx_enable)
 {
-	struct asm_amrwb_enc_cfg enc_cfg;
+	struct asm_amrwb_enc_cfg enc_cfg __aligned(4);
 	int rc = 0;
 
 	pr_debug("%s: session[%d]frames[%d]band_mode[0x%4x]dtx_enable[0x%4x]\n",
@@ -5767,7 +5767,7 @@ static int __q6asm_media_format_block_pcm(struct audio_client *ac,
 				uint16_t bits_per_sample, int stream_id,
 				bool use_default_chmap, char *channel_map)
 {
-	struct asm_multi_channel_pcm_fmt_blk_v2 fmt;
+	struct asm_multi_channel_pcm_fmt_blk_v2 fmt __aligned(4);
 	u8 *channel_mapping;
 	int rc = 0;
 
@@ -5854,7 +5854,7 @@ static int __q6asm_media_format_block_pcm_v3(struct audio_client *ac,
 					     char *channel_map,
 					     uint16_t sample_word_size)
 {
-	struct asm_multi_channel_pcm_fmt_blk_param_v3 fmt;
+	struct asm_multi_channel_pcm_fmt_blk_param_v3 fmt __aligned(4);
 	u8 *channel_mapping;
 	int rc;
 
@@ -5942,7 +5942,7 @@ static int __q6asm_media_format_block_pcm_v4(struct audio_client *ac,
 					     uint16_t endianness,
 					     uint16_t mode)
 {
-	struct asm_multi_channel_pcm_fmt_blk_param_v4 fmt;
+	struct asm_multi_channel_pcm_fmt_blk_param_v4 fmt __aligned(4);
 	u8 *channel_mapping;
 	int rc;
 
@@ -6032,7 +6032,7 @@ static int __q6asm_media_format_block_pcm_v5(struct audio_client *ac,
 					     uint16_t endianness,
 					     uint16_t mode)
 {
-	struct asm_multi_channel_pcm_fmt_blk_param_v5 fmt;
+	struct asm_multi_channel_pcm_fmt_blk_param_v5 fmt __aligned(4);
 	u8 *channel_mapping;
 	int rc;
 
@@ -6289,7 +6289,7 @@ static int __q6asm_media_format_block_multi_ch_pcm(struct audio_client *ac,
 				bool use_default_chmap, char *channel_map,
 				uint16_t bits_per_sample)
 {
-	struct asm_multi_channel_pcm_fmt_blk_v2 fmt;
+	struct asm_multi_channel_pcm_fmt_blk_v2 fmt __aligned(4);
 	u8 *channel_mapping;
 	int rc = 0;
 
@@ -6361,7 +6361,7 @@ static int __q6asm_media_format_block_multi_ch_pcm_v3(struct audio_client *ac,
 						      uint16_t bits_per_sample,
 						      uint16_t sample_word_size)
 {
-	struct asm_multi_channel_pcm_fmt_blk_param_v3 fmt;
+	struct asm_multi_channel_pcm_fmt_blk_param_v3 fmt __aligned(4);
 	u8 *channel_mapping;
 	int rc;
 
@@ -6437,7 +6437,7 @@ static int __q6asm_media_format_block_multi_ch_pcm_v4(struct audio_client *ac,
 						      uint16_t endianness,
 						      uint16_t mode)
 {
-	struct asm_multi_channel_pcm_fmt_blk_param_v4 fmt;
+	struct asm_multi_channel_pcm_fmt_blk_param_v4 fmt __aligned(4);
 	u8 *channel_mapping;
 	int rc;
 
@@ -6515,7 +6515,7 @@ static int __q6asm_media_format_block_multi_ch_pcm_v5(struct audio_client *ac,
 						      uint16_t endianness,
 						      uint16_t mode)
 {
-	struct asm_multi_channel_pcm_fmt_blk_param_v5 fmt;
+	struct asm_multi_channel_pcm_fmt_blk_param_v5 fmt __aligned(4);
 	u8 *channel_mapping;
 	int rc;
 
@@ -6712,7 +6712,7 @@ int q6asm_media_format_block_gen_compr(struct audio_client *ac,
 				bool use_default_chmap, char *channel_map,
 				uint16_t bits_per_sample)
 {
-	struct asm_generic_compressed_fmt_blk_t fmt;
+	struct asm_generic_compressed_fmt_blk_t fmt __aligned(4);
 	u8 *channel_mapping;
 	int rc = 0;
 
@@ -6792,7 +6792,7 @@ EXPORT_SYMBOL(q6asm_media_format_block_gen_compr);
 int q6asm_media_format_block_iec(struct audio_client *ac,
 				uint32_t rate, uint32_t channels)
 {
-	struct asm_iec_compressed_fmt_blk_t fmt;
+	struct asm_iec_compressed_fmt_blk_t fmt __aligned(4);
 	int rc = 0;
 
 	pr_debug("%s: session[%d]rate[%d]ch[%d]\n",
@@ -6837,7 +6837,7 @@ EXPORT_SYMBOL(q6asm_media_format_block_iec);
 static int __q6asm_media_format_block_multi_aac(struct audio_client *ac,
 				struct asm_aac_cfg *cfg, int stream_id)
 {
-	struct asm_aac_fmt_blk_v2 fmt;
+	struct asm_aac_fmt_blk_v2 fmt __aligned(4);
 	int rc = 0;
 
 	pr_debug("%s: session[%d]rate[%d]ch[%d]\n", __func__, ac->session,
@@ -6964,7 +6964,7 @@ EXPORT_SYMBOL(q6asm_stream_media_format_block_aac);
 int q6asm_media_format_block_wma(struct audio_client *ac,
 				void *cfg, int stream_id)
 {
-	struct asm_wmastdv9_fmt_blk_v2 fmt;
+	struct asm_wmastdv9_fmt_blk_v2 fmt __aligned(4);
 	struct asm_wma_cfg *wma_cfg = (struct asm_wma_cfg *)cfg;
 	int rc = 0;
 
@@ -7030,7 +7030,7 @@ EXPORT_SYMBOL(q6asm_media_format_block_wma);
 int q6asm_media_format_block_wmapro(struct audio_client *ac,
 				void *cfg, int stream_id)
 {
-	struct asm_wmaprov10_fmt_blk_v2 fmt;
+	struct asm_wmaprov10_fmt_blk_v2 fmt __aligned(4);
 	struct asm_wmapro_cfg *wmapro_cfg = (struct asm_wmapro_cfg *)cfg;
 	int rc = 0;
 
@@ -7101,7 +7101,7 @@ EXPORT_SYMBOL(q6asm_media_format_block_wmapro);
 int q6asm_media_format_block_amrwbplus(struct audio_client *ac,
 				struct asm_amrwbplus_cfg *cfg)
 {
-	struct asm_amrwbplus_fmt_blk_v2 fmt;
+	struct asm_amrwbplus_fmt_blk_v2 fmt __aligned(4);
 	int rc = 0;
 
 	pr_debug("%s: session[%d]band-mode[%d]frame-fmt[%d]ch[%d]\n",
@@ -7160,7 +7160,7 @@ EXPORT_SYMBOL(q6asm_media_format_block_amrwbplus);
 int q6asm_stream_media_format_block_flac(struct audio_client *ac,
 				struct asm_flac_cfg *cfg, int stream_id)
 {
-	struct asm_flac_fmt_blk_v2 fmt;
+	struct asm_flac_fmt_blk_v2 fmt __aligned(4);
 	int rc = 0;
 
 	pr_debug("%s :session[%d] rate[%d] ch[%d] size[%d] stream_id[%d]\n",
@@ -7224,7 +7224,7 @@ EXPORT_SYMBOL(q6asm_stream_media_format_block_flac);
 int q6asm_media_format_block_alac(struct audio_client *ac,
 				struct asm_alac_cfg *cfg, int stream_id)
 {
-	struct asm_alac_fmt_blk_v2 fmt;
+	struct asm_alac_fmt_blk_v2 fmt __aligned(4);
 	int rc = 0;
 
 	pr_debug("%s :session[%d]rate[%d]ch[%d]\n", __func__,
@@ -7288,7 +7288,7 @@ EXPORT_SYMBOL(q6asm_media_format_block_alac);
 int q6asm_media_format_block_g711(struct audio_client *ac,
 				struct asm_g711_dec_cfg *cfg, int stream_id)
 {
-	struct asm_g711_dec_fmt_blk_v2 fmt;
+	struct asm_g711_dec_fmt_blk_v2 fmt __aligned(4);
 	int rc = 0;
 
 	if (!ac) {
@@ -7360,7 +7360,7 @@ EXPORT_SYMBOL(q6asm_media_format_block_g711);
 int q6asm_stream_media_format_block_vorbis(struct audio_client *ac,
 				struct asm_vorbis_cfg *cfg, int stream_id)
 {
-	struct asm_vorbis_fmt_blk_v2 fmt;
+	struct asm_vorbis_fmt_blk_v2 fmt __aligned(4);
 	int rc = 0;
 
 	pr_debug("%s :session[%d] bit_stream_fmt[%d] stream_id[%d]\n",
@@ -7416,7 +7416,7 @@ EXPORT_SYMBOL(q6asm_stream_media_format_block_vorbis);
 int q6asm_media_format_block_ape(struct audio_client *ac,
 				struct asm_ape_cfg *cfg, int stream_id)
 {
-	struct asm_ape_fmt_blk_v2 fmt;
+	struct asm_ape_fmt_blk_v2 fmt __aligned(4);
 	int rc = 0;
 
 	pr_debug("%s :session[%d]rate[%d]ch[%d]\n", __func__,
@@ -7481,7 +7481,7 @@ EXPORT_SYMBOL(q6asm_media_format_block_ape);
 int q6asm_media_format_block_dsd(struct audio_client *ac,
 				struct asm_dsd_cfg *cfg, int stream_id)
 {
-	struct asm_dsd_fmt_blk_v2 fmt;
+	struct asm_dsd_fmt_blk_v2 fmt __aligned(4);
 	int rc;
 
 	pr_debug("%s: session[%d] data_rate[%d] ch[%d]\n", __func__,
@@ -7541,7 +7541,7 @@ EXPORT_SYMBOL(q6asm_media_format_block_dsd);
 int q6asm_stream_media_format_block_aptx_dec(struct audio_client *ac,
 						uint32_t srate, int stream_id)
 {
-	struct asm_aptx_dec_fmt_blk_v2 aptx_fmt;
+	struct asm_aptx_dec_fmt_blk_v2 aptx_fmt __aligned(4);
 	int rc = 0;
 
 	if (!ac->session) {
@@ -7593,7 +7593,7 @@ EXPORT_SYMBOL(q6asm_stream_media_format_block_aptx_dec);
 static int __q6asm_ds1_set_endp_params(struct audio_client *ac, int param_id,
 				int param_value, int stream_id)
 {
-	struct asm_dec_ddp_endp_param_v2 ddp_cfg;
+	struct asm_dec_ddp_endp_param_v2 ddp_cfg __aligned(4);
 	int rc = 0;
 
 	pr_debug("%s: session[%d] stream[%d],param_id[%d]param_value[%d]",
@@ -7808,7 +7808,7 @@ EXPORT_SYMBOL(q6asm_memory_map);
  */
 int q6asm_memory_unmap(struct audio_client *ac, phys_addr_t buf_add, int dir)
 {
-	struct avs_cmd_shared_mem_unmap_regions mem_unmap;
+	struct avs_cmd_shared_mem_unmap_regions mem_unmap __aligned(4);
 	struct asm_buffer_node *buf_node = NULL;
 	struct list_head *ptr, *next;
 
@@ -8061,7 +8061,7 @@ EXPORT_SYMBOL(q6asm_memory_map_regions);
  */
 static int q6asm_memory_unmap_regions(struct audio_client *ac, int dir)
 {
-	struct avs_cmd_shared_mem_unmap_regions mem_unmap;
+	struct avs_cmd_shared_mem_unmap_regions mem_unmap __aligned(4);
 	struct audio_port_data *port = NULL;
 	struct asm_buffer_node *buf_node = NULL;
 	struct list_head *ptr, *next;
@@ -8149,7 +8149,7 @@ EXPORT_SYMBOL(q6asm_memory_unmap_regions);
 
 int q6asm_set_lrgain(struct audio_client *ac, int left_gain, int right_gain)
 {
-	struct asm_volume_ctrl_multichannel_gain multi_ch_gain;
+	struct asm_volume_ctrl_multichannel_gain multi_ch_gain __aligned(4);
 	int sz = 0;
 	int rc  = 0;
 	int session_id = 0;
@@ -8241,7 +8241,7 @@ done:
 int q6asm_set_multich_gain(struct audio_client *ac, uint32_t channels,
 			   uint32_t *gains, uint8_t *ch_map, bool use_default)
 {
-	struct asm_volume_ctrl_multichannel_gain multich_gain;
+	struct asm_volume_ctrl_multichannel_gain multich_gain __aligned(4);
 	int sz = 0;
 	int rc  = 0;
 	int i, session_id = 0;
@@ -8362,7 +8362,7 @@ EXPORT_SYMBOL(q6asm_set_multich_gain);
  */
 int q6asm_set_mute(struct audio_client *ac, int muteflag)
 {
-	struct asm_volume_ctrl_mute_config mute;
+	struct asm_volume_ctrl_mute_config mute __aligned(4);
 	int sz = 0;
 	int rc  = 0;
 	int session_id = 0;
@@ -8441,7 +8441,7 @@ EXPORT_SYMBOL(q6asm_set_mute);
 
 static int __q6asm_set_volume(struct audio_client *ac, int volume, int instance)
 {
-	struct asm_volume_ctrl_master_gain vol;
+	struct asm_volume_ctrl_master_gain vol __aligned(4);
 	int sz = 0;
 	int rc  = 0;
 	int module_id, session_id = 0;
@@ -8560,7 +8560,7 @@ int q6asm_set_volume_v2(struct audio_client *ac, int volume, int instance)
 int q6asm_set_aptx_dec_bt_addr(struct audio_client *ac,
 				struct aptx_dec_bt_addr_cfg *cfg)
 {
-	struct aptx_dec_bt_dev_addr paylod;
+	struct aptx_dec_bt_dev_addr paylod __aligned(4);
 	int sz = 0;
 	int rc = 0;
 
@@ -8639,7 +8639,7 @@ int q6asm_send_ion_fd(struct audio_client *ac, int fd)
 	void *vaddr;
 	int ret;
 	int sz = 0;
-	struct avs_rtic_shared_mem_addr shm;
+	struct avs_rtic_shared_mem_addr shm __aligned(4);
 
 	if (ac == NULL) {
 		pr_err("%s: APR handle NULL\n", __func__);
@@ -8732,7 +8732,7 @@ int q6asm_send_rtic_event_ack(struct audio_client *ac,
 {
 	char *asm_params = NULL;
 	int sz, rc;
-	struct avs_param_rtic_event_ack ack;
+	struct avs_param_rtic_event_ack ack __aligned(4);
 
 	if (!param || !ac) {
 		pr_err("%s: %s is NULL\n", __func__,
@@ -8804,7 +8804,7 @@ EXPORT_SYMBOL(q6asm_send_rtic_event_ack);
 int q6asm_set_softpause(struct audio_client *ac,
 			struct asm_softpause_params *pause_param)
 {
-	struct asm_soft_pause_params softpause;
+	struct asm_soft_pause_params softpause __aligned(4);
 	int sz = 0;
 	int rc  = 0;
 	int session_id = 0;
@@ -8890,7 +8890,7 @@ static int __q6asm_set_softvolume(struct audio_client *ac,
 				  struct asm_softvolume_params *softvol_param,
 				  int instance)
 {
-	struct asm_soft_step_volume_params softvol;
+	struct asm_soft_step_volume_params softvol __aligned(4);
 	int sz = 0;
 	int rc  = 0;
 	int module_id, session_id;
@@ -9025,7 +9025,7 @@ EXPORT_SYMBOL(q6asm_set_softvolume_v2);
  */
 int q6asm_equalizer(struct audio_client *ac, void *eq_p)
 {
-	struct asm_eq_params eq;
+	struct asm_eq_params eq __aligned(4);
 	struct msm_audio_eq_stream_config *eq_params = NULL;
 	int i  = 0;
 	int sz = 0;
@@ -9136,7 +9136,7 @@ EXPORT_SYMBOL(q6asm_equalizer);
 static int __q6asm_read(struct audio_client *ac, bool is_custom_len_reqd,
 			int len)
 {
-	struct asm_data_cmd_read_v2 read;
+	struct asm_data_cmd_read_v2 read __aligned(4);
 	struct asm_buffer_node *buf_node = NULL;
 	struct list_head *ptr, *next;
 	struct audio_buffer        *ab;
@@ -9257,7 +9257,7 @@ EXPORT_SYMBOL(q6asm_read_v2);
  */
 int q6asm_read_nolock(struct audio_client *ac)
 {
-	struct asm_data_cmd_read_v2 read;
+	struct asm_data_cmd_read_v2 read __aligned(4);
 	struct asm_buffer_node *buf_node = NULL;
 	struct list_head *ptr, *next;
 	struct audio_buffer        *ab;
@@ -9343,7 +9343,7 @@ int q6asm_async_write(struct audio_client *ac,
 					  struct audio_aio_write_param *param)
 {
 	int rc = 0;
-	struct asm_data_cmd_write_v2 write;
+	struct asm_data_cmd_write_v2 write __aligned(4);
 	struct asm_buffer_node *buf_node = NULL;
 	struct list_head *ptr, *next;
 	struct audio_buffer        *ab;
@@ -9438,7 +9438,7 @@ int q6asm_async_read(struct audio_client *ac,
 					  struct audio_aio_read_param *param)
 {
 	int rc = 0;
-	struct asm_data_cmd_read_v2 read;
+	struct asm_data_cmd_read_v2 read __aligned(4);
 	struct asm_buffer_node *buf_node = NULL;
 	struct list_head *ptr, *next;
 	phys_addr_t lbuf_phys_addr;
@@ -9519,7 +9519,7 @@ int q6asm_write(struct audio_client *ac, uint32_t len, uint32_t msw_ts,
 		uint32_t lsw_ts, uint32_t flags)
 {
 	int rc = 0;
-	struct asm_data_cmd_write_v2 write;
+	struct asm_data_cmd_write_v2 write __aligned(4);
 	struct asm_buffer_node *buf_node = NULL;
 	struct audio_port_data *port;
 	struct audio_buffer    *ab;
@@ -9613,7 +9613,7 @@ int q6asm_write_nolock(struct audio_client *ac, uint32_t len, uint32_t msw_ts,
 			uint32_t lsw_ts, uint32_t flags)
 {
 	int rc = 0;
-	struct asm_data_cmd_write_v2 write;
+	struct asm_data_cmd_write_v2 write __aligned(4);
 	struct asm_buffer_node *buf_node = NULL;
 	struct audio_port_data *port;
 	struct audio_buffer    *ab;
@@ -9698,7 +9698,7 @@ EXPORT_SYMBOL(q6asm_write_nolock);
  */
 int q6asm_get_session_time(struct audio_client *ac, uint64_t *tstamp)
 {
-	struct asm_mtmx_strtr_get_params mtmx_params;
+	struct asm_mtmx_strtr_get_params mtmx_params __aligned(4);
 	int rc;
 
 	if (ac == NULL) {
@@ -9921,7 +9921,7 @@ int q6asm_send_mtmx_strtr_window(struct audio_client *ac,
 		struct asm_session_mtmx_strtr_param_window_v2_t *window_param,
 		uint32_t param_id)
 {
-	struct asm_mtmx_strtr_params matrix;
+	struct asm_mtmx_strtr_params matrix __aligned(4);
 	int sz = 0;
 	int rc  = 0;
 
@@ -10004,7 +10004,7 @@ EXPORT_SYMBOL(q6asm_send_mtmx_strtr_window);
 int q6asm_send_mtmx_strtr_render_mode(struct audio_client *ac,
 		uint32_t render_mode)
 {
-	struct asm_mtmx_strtr_params matrix;
+	struct asm_mtmx_strtr_params matrix __aligned(4);
 	struct asm_session_mtmx_strtr_param_render_mode_t render_param;
 	int sz = 0;
 	int rc  = 0;
@@ -10099,7 +10099,7 @@ EXPORT_SYMBOL(q6asm_send_mtmx_strtr_render_mode);
 int q6asm_send_mtmx_strtr_clk_rec_mode(struct audio_client *ac,
 		uint32_t clk_rec_mode)
 {
-	struct asm_mtmx_strtr_params matrix;
+	struct asm_mtmx_strtr_params matrix __aligned(4);
 	struct asm_session_mtmx_strtr_param_clk_rec_t clk_rec_param;
 	int sz = 0;
 	int rc  = 0;
@@ -10194,7 +10194,7 @@ EXPORT_SYMBOL(q6asm_send_mtmx_strtr_clk_rec_mode);
 int q6asm_send_mtmx_strtr_enable_adjust_session_clock(struct audio_client *ac,
 		bool enable)
 {
-	struct asm_mtmx_strtr_params matrix;
+	struct asm_mtmx_strtr_params matrix __aligned(4);
 	struct asm_session_mtmx_param_adjust_session_time_ctl_t adjust_time;
 	int sz = 0;
 	int rc  = 0;
@@ -10529,7 +10529,7 @@ EXPORT_SYMBOL(q6asm_stream_cmd_nowait);
 int __q6asm_send_meta_data(struct audio_client *ac, uint32_t stream_id,
 			  uint32_t initial_samples, uint32_t trailing_samples)
 {
-	struct asm_data_cmd_remove_silence silence;
+	struct asm_data_cmd_remove_silence silence __aligned(4);
 	int rc = 0;
 
 	if (!ac) {
@@ -10647,7 +10647,7 @@ static void q6asm_reset_buf_state(struct audio_client *ac)
  */
 int q6asm_reg_tx_overflow(struct audio_client *ac, uint16_t enable)
 {
-	struct asm_session_cmd_regx_overflow tx_overflow;
+	struct asm_session_cmd_regx_overflow tx_overflow __aligned(4);
 	int rc;
 
 	if (!ac) {
@@ -10699,7 +10699,7 @@ EXPORT_SYMBOL(q6asm_reg_tx_overflow);
 
 int q6asm_reg_rx_underflow(struct audio_client *ac, uint16_t enable)
 {
-	struct asm_session_cmd_rgstr_rx_underflow rx_underflow;
+	struct asm_session_cmd_rgstr_rx_underflow rx_underflow __aligned(4);
 	int rc;
 
 	if (!ac) {
@@ -10746,7 +10746,7 @@ int q6asm_adjust_session_clock(struct audio_client *ac,
 {
 	int rc = 0;
 	int sz = 0;
-	struct asm_session_cmd_adjust_session_clock_v2 adjust_clock;
+	struct asm_session_cmd_adjust_session_clock_v2 adjust_clock __aligned(4);
 
 	pr_debug("%s: adjust_time_lsw is %x, adjust_time_msw is %x\n", __func__,
 		  adjust_time_lsw, adjust_time_msw);
