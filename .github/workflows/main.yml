@@ -93,6 +93,7 @@ jobs:
           make \
             ARCH=arm64 \
             O=out_ysl \
+            V=1 \
             olddefconfig
 
           echo "===== FINAL CONFIG ====="
@@ -106,6 +107,7 @@ jobs:
             ARCH=arm64 \
             SUBARCH=arm64 \
             O=out_ysl \
+            V=1 \
             CC='ccache clang' \
             AS=clang \
             AR=llvm-ar \
