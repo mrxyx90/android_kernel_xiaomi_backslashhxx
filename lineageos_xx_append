@@ -49,8 +49,8 @@ CONFIG_TCP_CONG_CUBIC=y
 CONFIG_TCP_CONG_BBR=y
 
 # ===== Performance tweaks (ported from master) =====
-# custom hz tickrate
-CONFIG_HZ=50
+# custom hz tickrate (100 Hz, stock lineage value)
+CONFIG_HZ=100
 # workqueue: queue everything on system's power efficient wq
 CONFIG_WQ_POWER_EFFICIENT_DEFAULT=y
 # net: tcp bbrplus as default congestion algorithm
