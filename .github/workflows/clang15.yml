@@ -149,7 +149,7 @@ jobs:
           test -s out_ysl_clang15/arch/arm64/boot/Image.gz
           ccache -s
 
-      - name: Create YSL Image.gz-dtb Clang 15 artifact
+      - name: Create YSL Image.gz-dtb artifact
         shell: bash
         run: |
           set -eux
@@ -171,13 +171,13 @@ jobs:
 
           echo "Using DTB: $DTB"
           cat out_ysl_clang15/arch/arm64/boot/Image.gz "$DTB" \
-            > artifacts-clang15/Image.gz-dtb-clang15
+            > artifacts-clang15/Image.gz-dtb
           test -s artifacts-clang15/Image.gz-dtb-clang15
           ls -lh artifacts-clang15/Image.gz-dtb-clang15
 
       - name: Upload YSL Clang 15 kernel
         uses: actions/upload-artifact@v4
         with:
-          name: ysl-Image.gz-dtb-clang15
-          path: artifacts-clang15/Image.gz-dtb-clang15
+          name: ysl-Image.gz-dtb
+          path: artifacts-clang15/Image.gz-dtb
           if-no-files-found: error
