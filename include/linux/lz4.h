@@ -197,6 +197,7 @@ static inline int LZ4_compressBound(size_t isize)
 int LZ4_compress_default(const char *source, char *dest, int inputSize,
 	int maxOutputSize, void *wrkmem);
 
+#if 0
 /**
  * LZ4_compress_fast() - As LZ4_compress_default providing an acceleration param
  * @source: source address of the original data
@@ -218,7 +219,7 @@ int LZ4_compress_default(const char *source, char *dest, int inputSize,
  * Return: Number of bytes written into buffer 'dest'
  *	(necessarily <= maxOutputSize) or 0 if compression fails
  */
-int LZ4_compress_fast(const char *source, char *dest, int inputSize,
+static int LZ4_compress_fast(const char *source, char *dest, int inputSize,
 	int maxOutputSize, int acceleration, void *wrkmem);
 
 /**
@@ -242,8 +243,10 @@ int LZ4_compress_fast(const char *source, char *dest, int inputSize,
  * Return: Number of bytes written into 'dest' (necessarily <= targetDestSize)
  *	or 0 if compression fails
  */
-int LZ4_compress_destSize(const char *source, char *dest, int *sourceSizePtr,
+static int LZ4_compress_destSize(const char *source, char *dest, int *sourceSizePtr,
 	int targetDestSize, void *wrkmem);
+
+#endif
 
 /*-************************************************************************
  *	Decompression Functions
