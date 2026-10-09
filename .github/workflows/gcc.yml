@@ -74,23 +74,20 @@ jobs:
 
           # Keep the build version distinct from the Clang build.
           echo 'CONFIG_LOCALVERSION="-ysl-gcc"' > /tmp/lineageos_xx_devicename
+          echo '# CONFIG_COMPAT_VDSO is not set' > /tmp/lineageos_xx_no_compat_vdso
 
           # Start from the same YSL fragments as the existing workflow.
           CONFIG_FRAGMENTS=(
             arch/arm64/configs/msm8953-perf_defconfig
             arch/arm64/configs/xiaomi/xiaomi.config
             arch/arm64/configs/xiaomi/ysl.config
+            /tmp/lineageos_xx_no_compat_vdso
           )
 
           for f in "${CONFIG_FRAGMENTS[@]}"; do
             echo "Checking $f"
             test -f "$f"
           done
-
-          # The YSL branch uses this fragment for 32-bit compatibility.
-          if [[ -f lineageos_xx_vdso ]]; then
-            CONFIG_FRAGMENTS+=(lineageos_xx_vdso)
-          fi
 
           ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- \
             CROSS_COMPILE_ARM32=arm-linux-gnueabi- \
@@ -101,14 +98,16 @@ jobs:
           make \
             ARCH=arm64 \
             O=out_ysl_gcc \
+            V=1 \
             CROSS_COMPILE=aarch64-linux-gnu- \
             CROSS_COMPILE_ARM32=arm-linux-gnueabi- \
             CROSS_COMPILE_COMPAT=arm-linux-gnueabi- \
+            V=1 \
             olddefconfig
 
           echo "===== FINAL CONFIG / COMPILER ====="
           grep -E \
-            '^(CONFIG_LOCALVERSION=|CONFIG_MACH_XIAOMI_YSL=|CONFIG_CRYPTO_LZ4=|CONFIG_ZRAM=|CONFIG_ZRAM_DEFAULT_COMP_ALGORITHM=|CONFIG_SCHED_BORE=)' \
+            '^(CONFIG_LOCALVERSION=|CONFIG_MACH_XIAOMI_YSL=|CONFIG_COMPAT_VDSO=|# CONFIG_COMPAT_VDSO is not set|CONFIG_CRYPTO_LZ4=|CONFIG_ZRAM=|CONFIG_ZRAM_DEFAULT_COMP_ALGORITHM=|CONFIG_SCHED_BORE=)' \
             out_ysl_gcc/.config || true
           echo "Target compiler:"
           aarch64-linux-gnu-gcc --version | head -n 1
@@ -130,6 +129,7 @@ jobs:
             KBUILD_BUILD_HOST="$(git symbolic-ref --short HEAD || echo detached)" \
             KBUILD_BUILD_FEATURES='GCC test build for YSL'
 
+          rm -f /tmp/lineageos_xx_devicename /tmp/lineageos_xx_no_compat_vdso
           test -s out_ysl_gcc/arch/arm64/boot/Image.gz
 
       - name: Create YSL Image.gz-dtb artifact
