@@ -60,6 +60,10 @@ jobs:
           llvm-objcopy-15 --version
           llvm-objdump-15 --version
           llvm-strip-15 --version
+          # The kernel's vDSO link is driven by Clang, so provide an unversioned LLD path.
+          sudo ln -sf /usr/bin/ld.lld-15 /usr/local/bin/ld.lld
+          command -v ld.lld
+          ld.lld --version
           command -v arm-linux-gnueabi-gcc
           arm-linux-gnueabi-gcc --version
 
@@ -120,7 +124,7 @@ jobs:
             ARCH=arm64 \
             SUBARCH=arm64 \
             O=out_ysl_clang15 \
-            CC='ccache clang-15' \
+            CC='ccache clang-15 -fuse-ld=lld' \
             AS=clang-15 \
             AR=llvm-ar-15 \
             NM=llvm-nm-15 \
@@ -132,8 +136,6 @@ jobs:
             CROSS_COMPILE=aarch64-linux-gnu- \
             CROSS_COMPILE_ARM32=arm-linux-gnueabi- \
             CROSS_COMPILE_COMPAT=arm-linux-gnueabi- \
-            CLANG_GCC32_TC='-gcc-toolchain /usr' \
-            CLANG_PREFIX32='--prefix=/usr/bin/arm-linux-gnueabi-' \
             LLVM=1 \
             LLVM_IAS=1 \
             INSTALL_MOD_STRIP=1 \
