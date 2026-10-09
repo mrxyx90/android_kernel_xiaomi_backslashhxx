@@ -60,7 +60,7 @@ jobs:
           llvm-objcopy-15 --version
           llvm-objdump-15 --version
           llvm-strip-15 --version
-          # The kernel's vDSO link is driven by Clang, so provide an unversioned LLD path.
+          # Provide an unversioned LLD path for build tools.
           sudo ln -sf /usr/bin/ld.lld-15 /usr/local/bin/ld.lld
           command -v ld.lld
           ld.lld --version
@@ -83,13 +83,11 @@ jobs:
           mkdir -p out_ysl_clang15
 
           echo 'CONFIG_LOCALVERSION="-ysl-clang15"' > /tmp/lineageos_xx_devicename
-          echo '# CONFIG_COMPAT_VDSO is not set' > /tmp/lineageos_xx_clang15_no_compat_vdso
 
           for f in \
             arch/arm64/configs/msm8953-perf_defconfig \
             arch/arm64/configs/xiaomi/xiaomi.config \
-            arch/arm64/configs/xiaomi/ysl.config \
-            /tmp/lineageos_xx_clang15_no_compat_vdso
+            arch/arm64/configs/xiaomi/ysl.config
           do
             echo "Checking $f"
             test -f "$f"
@@ -99,7 +97,6 @@ jobs:
             arch/arm64/configs/msm8953-perf_defconfig \
             arch/arm64/configs/xiaomi/xiaomi.config \
             arch/arm64/configs/xiaomi/ysl.config \
-            /tmp/lineageos_xx_clang15_no_compat_vdso \
             /tmp/lineageos_xx_devicename
 
           make \
@@ -110,7 +107,7 @@ jobs:
 
           echo "===== FINAL CONFIG / COMPILER ====="
           grep -E \
-            '^(CONFIG_LOCALVERSION=|CONFIG_MACH_XIAOMI_YSL=|CONFIG_SECURITY_SELINUX=|CONFIG_MODULES=|# CONFIG_MODULES is not set|CONFIG_MODVERSIONS=|CONFIG_COMPAT_VDSO=|# CONFIG_COMPAT_VDSO is not set|CONFIG_IOSCHED_BFQ=|CONFIG_BFQ_GROUP_IOSCHED=|CONFIG_DEFAULT_BFQ=|CONFIG_CPU_FREQ_DEFAULT_GOV_SCHEDUTIL=|CONFIG_SCHED_BORE=|CONFIG_ZRAM_DEFAULT_COMP_ALGORITHM=)' \
+            '^(CONFIG_LOCALVERSION=|CONFIG_MACH_XIAOMI_YSL=|CONFIG_SECURITY_SELINUX=|CONFIG_MODULES=|# CONFIG_MODULES is not set|CONFIG_MODVERSIONS=|CONFIG_IOSCHED_BFQ=|CONFIG_BFQ_GROUP_IOSCHED=|CONFIG_DEFAULT_BFQ=|CONFIG_CPU_FREQ_DEFAULT_GOV_SCHEDUTIL=|CONFIG_SCHED_BORE=|CONFIG_ZRAM_DEFAULT_COMP_ALGORITHM=)' \
             out_ysl_clang15/.config || true
 
       - name: Build YSL kernel with Clang 15
@@ -150,7 +147,6 @@ jobs:
 
           test -s out_ysl_clang15/arch/arm64/boot/Image.gz
           ccache -s
-          rm -f /tmp/lineageos_xx_devicename /tmp/lineageos_xx_clang15_no_compat_vdso
 
       - name: Create YSL Image.gz-dtb Clang 15 artifact
         shell: bash
