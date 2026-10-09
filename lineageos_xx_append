@@ -47,3 +47,25 @@ CONFIG_SLUB_CPU_PARTIAL=y
 CONFIG_DEFAULT_FQ_CODEL=y
 CONFIG_TCP_CONG_CUBIC=y
 CONFIG_TCP_CONG_BBR=y
+
+# ===== Performance tweaks (ported from master) =====
+# custom hz tickrate
+CONFIG_HZ=50
+# workqueue: queue everything on system's power efficient wq
+CONFIG_WQ_POWER_EFFICIENT_DEFAULT=y
+# net: tcp bbrplus as default congestion algorithm
+CONFIG_TCP_CONG_ADVANCED=y
+CONFIG_TCP_CONG_BBRPLUS=y
+CONFIG_DEFAULT_BBRPLUS=y
+# zram: entropy calculation
+CONFIG_ZRAM_ENTROPY=y
+CONFIG_ZRAM_ENTROPY_THRESHOLD=100000
+# mm/vmscan: working set protection knobs
+CONFIG_ANON_MIN_KBYTES=393216
+CONFIG_CLEAN_LOW_KBYTES=393216
+CONFIG_CLEAN_MIN_KBYTES=196608
+CONFIG_BALANCE_ANON_FILE_RECLAIM=n
+# SBalance IRQ balancer
+CONFIG_SBALANCE_EXCLUDE_CPUS="3,7"
+# devfreq: simple gpu algorithm (replaces closed-source TZ GPU controller)
+CONFIG_SIMPLE_GPU_ALGORITHM=y
