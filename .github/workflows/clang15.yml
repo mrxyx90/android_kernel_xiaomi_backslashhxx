@@ -172,8 +172,8 @@ jobs:
           echo "Using DTB: $DTB"
           cat out_ysl_clang15/arch/arm64/boot/Image.gz "$DTB" \
             > artifacts-clang15/Image.gz-dtb
-          test -s artifacts-clang15/Image.gz-dtb-clang15
-          ls -lh artifacts-clang15/Image.gz-dtb-clang15
+          test -s artifacts-clang15/Image.gz-dtb
+          ls -lh artifacts-clang15/Image.gz-dtb
 
       - name: Upload YSL Clang 15 kernel
         uses: actions/upload-artifact@v4
