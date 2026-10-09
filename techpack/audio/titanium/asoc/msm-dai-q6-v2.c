@@ -5537,16 +5537,18 @@ static int msm_dai_tdm_q6_probe(struct platform_device *pdev)
 	int i = 0;
 	int group_idx = 0;
 	u32 clk_mode = 0;
+	u32 dt_group_id = 0;
 
 	/* extract tdm group info into static */
 	rc = of_property_read_u32(pdev->dev.of_node,
 		"qcom,msm-cpudai-tdm-group-id",
-		(u32 *)&tdm_group_cfg.group_id);
+		&dt_group_id);
 	if (rc) {
 		dev_err(&pdev->dev, "%s: Group ID from DT file %s\n",
 			__func__, "qcom,msm-cpudai-tdm-group-id");
 		goto rtn;
 	}
+	tdm_group_cfg.group_id = dt_group_id;
 	dev_dbg(&pdev->dev, "%s: Group ID from DT file 0x%x\n",
 		__func__, tdm_group_cfg.group_id);
 
@@ -9338,6 +9340,7 @@ static int msm_dai_q6_tdm_dev_probe(struct platform_device *pdev)
 	struct afe_param_id_custom_tdm_header_cfg *custom_tdm_header = NULL;
 	int rc = 0;
 	u32 tdm_dev_id = 0;
+	u32 dt_value = 0;
 	int port_idx = 0;
 	struct device_node *tdm_parent_node = NULL;
 
@@ -9465,36 +9468,39 @@ static int msm_dai_q6_tdm_dev_probe(struct platform_device *pdev)
 		/* if the property exist */
 		rc = of_property_read_u32(pdev->dev.of_node,
 			"qcom,msm-cpudai-tdm-header-start-offset",
-			(u32 *)&custom_tdm_header->start_offset);
+			&dt_value);
 		if (rc) {
 			dev_err(&pdev->dev, "%s: Header Start Offset from DT file %s\n",
 				__func__,
 				"qcom,msm-cpudai-tdm-header-start-offset");
 			goto free_dai_data;
 		}
+		custom_tdm_header->start_offset = dt_value;
 		dev_dbg(&pdev->dev, "%s: Header Start Offset from DT file 0x%x\n",
 			__func__, custom_tdm_header->start_offset);
 
 		rc = of_property_read_u32(pdev->dev.of_node,
 			"qcom,msm-cpudai-tdm-header-width",
-			(u32 *)&custom_tdm_header->header_width);
+			&dt_value);
 		if (rc) {
 			dev_err(&pdev->dev, "%s: Header Width from DT file %s\n",
 				__func__, "qcom,msm-cpudai-tdm-header-width");
 			goto free_dai_data;
 		}
+		custom_tdm_header->header_width = dt_value;
 		dev_dbg(&pdev->dev, "%s: Header Width from DT file 0x%x\n",
 			__func__, custom_tdm_header->header_width);
 
 		rc = of_property_read_u32(pdev->dev.of_node,
 			"qcom,msm-cpudai-tdm-header-num-frame-repeat",
-			(u32 *)&custom_tdm_header->num_frame_repeat);
+			&dt_value);
 		if (rc) {
 			dev_err(&pdev->dev, "%s: Header Num Frame Repeat from DT file %s\n",
 				__func__,
 				"qcom,msm-cpudai-tdm-header-num-frame-repeat");
 			goto free_dai_data;
 		}
+		custom_tdm_header->num_frame_repeat = dt_value;
 		dev_dbg(&pdev->dev, "%s: Header Num Frame Repeat from DT file 0x%x\n",
 			__func__, custom_tdm_header->num_frame_repeat);
 
