@@ -8,3 +8,4 @@
 #include "msm8953-pm-ysl.dtsi"
 #include "msm8953-regulator-ysl.dtsi"
 #include "msm8953-ysl.dtsi"
+#include "../msm8953-oc-gpu.dtsi"
