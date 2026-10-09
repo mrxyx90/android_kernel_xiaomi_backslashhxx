@@ -124,6 +124,7 @@ jobs:
             SUBARCH=arm64 \
             O=out_ysl_clang15 \
             V=1 \
+            KCFLAGS='-Wno-error=address-of-packed-member' \
             CC='ccache clang-15 -fuse-ld=lld' \
             AS=clang-15 \
             AR=llvm-ar-15 \
