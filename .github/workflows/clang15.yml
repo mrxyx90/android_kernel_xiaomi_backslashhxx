@@ -1,6 +1,9 @@
 name: Build YSL Kernel (Clang 15)
 
 on:
+  push:
+    branches:
+      - ysl-21
   workflow_dispatch:
     inputs:
       build_ref:
