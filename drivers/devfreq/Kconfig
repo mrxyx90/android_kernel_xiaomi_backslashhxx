@@ -80,6 +80,15 @@ config DEVFREQ_GOV_CPUFREQ
 	  CPU frequency to device frequency mapping table(s). This governor
 	  can be useful for controlling devices such as DDR, cache, CCI, etc.
 
+config SIMPLE_GPU_ALGORITHM
+	bool "Simple Adreno GPU frequency algorithm"
+	depends on DEVFREQ_GOV_QCOM_ADRENO_TZ
+	default n
+	help
+	  Adds an optional load-based Adreno frequency algorithm. It is disabled
+	  by default; the existing TrustZone DCVS algorithm remains in use unless
+	  the runtime simple_gpu_activate parameter is explicitly enabled.
+
 config QCOM_BIMC_BWMON
 	tristate "QCOM BIMC Bandwidth monitor hardware"
 	depends on ARCH_QCOM
