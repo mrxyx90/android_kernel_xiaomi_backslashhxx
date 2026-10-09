@@ -51,8 +51,9 @@ CONFIG_TCP_CONG_BBR=y
 # ===== Performance tweaks (ported from master) =====
 # custom hz tickrate (100 Hz, stock lineage value)
 CONFIG_HZ=100
-# workqueue: queue everything on system's power efficient wq
-CONFIG_WQ_POWER_EFFICIENT_DEFAULT=y
+# workqueue: schedule_delayed_work() routed to system_power_efficient_wq;
+# CONFIG_WQ_POWER_EFFICIENT_DEFAULT intentionally NOT set - power-efficient
+# workqueues trade latency for battery, dropped for performance
 # net: tcp bbrplus as default congestion algorithm
 CONFIG_TCP_CONG_ADVANCED=y
 CONFIG_TCP_CONG_BBRPLUS=y
