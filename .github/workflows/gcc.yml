@@ -102,7 +102,6 @@ jobs:
             CROSS_COMPILE=aarch64-linux-gnu- \
             CROSS_COMPILE_ARM32=arm-linux-gnueabi- \
             CROSS_COMPILE_COMPAT=arm-linux-gnueabi- \
-            V=1 \
             olddefconfig
 
           echo "===== FINAL CONFIG / COMPILER ====="
