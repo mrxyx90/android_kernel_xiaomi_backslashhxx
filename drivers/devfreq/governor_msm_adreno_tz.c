@@ -416,10 +416,9 @@ static int tz_get_target_freq(struct devfreq *devfreq, unsigned long *freq)
 
 #ifdef CONFIG_SIMPLE_GPU_ALGORITHM
 		if (simple_gpu_active) {
-			result = simple_gpu_algorithm(level,
-					devfreq->profile->max_state, &val, priv);
-			if (result)
-				return result;
+			if (simple_gpu_algorithm(level,
+					devfreq->profile->max_state, &val, priv))
+				val = 0;
 		} else
 #endif
 		{
@@ -427,10 +426,12 @@ static int tz_get_target_freq(struct devfreq *devfreq, unsigned long *freq)
 			scm_data[1] = priv->bin.total_time;
 			scm_data[2] = priv->bin.busy_time;
 			scm_data[3] = context_count;
-			result = __secure_tz_update_entry3(scm_data,
-					sizeof(scm_data), &val, sizeof(val), priv);
-			if (result)
-				return result;
+			/*
+			 * On 32-bit SCM, the return value carries the level delta,
+			 * so do not treat it as a conventional status code.
+			 */
+			__secure_tz_update_entry3(scm_data, sizeof(scm_data),
+					&val, sizeof(val), priv);
 		}
 	}
 	priv->bin.total_time = 0;
