@@ -723,10 +723,10 @@ static void msm_anlg_cdc_mbhc_calc_impedance(struct wcd_mbhc *mbhc,
 						dev_dbg(codec->dev,
 							"%s: Mono Headset\n",
 							__func__);
-						sdm660_cdc->imped_det_pin =
-							WCD_MBHC_DET_NONE;
-						mbhc->hph_type =
-							WCD_MBHC_HPH_MONO;
+					sdm660_cdc->imped_det_pin =
+						WCD_MBHC_DET_NONE;
+					mbhc->hph_type =
+						WCD_MBHC_HPH_MONO;
 				} else {
 					dev_dbg(codec->dev,
 						"%s: STEREO headset is found\n",
