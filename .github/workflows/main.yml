@@ -84,7 +84,6 @@ jobs:
             arch/arm64/configs/msm8953-perf_defconfig \
             arch/arm64/configs/xiaomi/xiaomi.config \
             arch/arm64/configs/xiaomi/ysl.config \
-            lineageos_xx_append \
             lineageos_xx_vdso
           do
             echo "Checking $f"
@@ -96,7 +95,6 @@ jobs:
             arch/arm64/configs/msm8953-perf_defconfig \
             arch/arm64/configs/xiaomi/xiaomi.config \
             arch/arm64/configs/xiaomi/ysl.config \
-            lineageos_xx_append \
             lineageos_xx_vdso \
             /tmp/lineageos_xx_devicename
 
