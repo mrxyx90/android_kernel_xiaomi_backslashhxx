@@ -1,0 +1,165 @@
+name: Build YSL Kernel (GCC)
+
+on:
+  workflow_dispatch:
+    inputs:
+      build_ref:
+        description: "Kernel branch or commit to build"
+        required: true
+        default: "ysl-21"
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 120
+
+    steps:
+      - name: Checkout kernel source
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.build_ref }}
+          submodules: recursive
+
+      - name: Install dependencies and GCC toolchains
+        run: |
+          set -eux
+          sudo apt-get update
+          sudo apt-get install -y \
+            bc \
+            bison \
+            build-essential \
+            ccache \
+            flex \
+            gcc-aarch64-linux-gnu \
+            binutils-aarch64-linux-gnu \
+            gcc-arm-linux-gnueabi \
+            binutils-arm-linux-gnueabi \
+            libssl-dev \
+            libelf-dev \
+            python3 \
+            rsync \
+            unzip \
+            zip \
+            wget \
+            xz-utils \
+            lz4
+
+      - name: Verify GCC toolchains
+        run: |
+          set -eux
+          command -v aarch64-linux-gnu-gcc
+          command -v aarch64-linux-gnu-ld
+          command -v arm-linux-gnueabi-gcc
+          command -v arm-linux-gnueabi-ld
+          aarch64-linux-gnu-gcc --version
+          aarch64-linux-gnu-ld --version
+          arm-linux-gnueabi-gcc --version
+
+      - name: Configure YSL kernel
+        shell: bash
+        run: |
+          set -eux
+
+          export DEVICENAME=ysl
+          export ARCH=arm64
+          export SUBARCH=arm64
+          export HEADER_ARCH=arm64
+
+          rm -rf out_ysl_gcc
+          mkdir -p out_ysl_gcc
+
+          # Keep the build version distinct from the Clang build.
+          echo 'CONFIG_LOCALVERSION="-ysl-gcc"' > /tmp/lineageos_xx_devicename
+
+          # Start from the same YSL fragments as the existing workflow.
+          CONFIG_FRAGMENTS=(
+            arch/arm64/configs/msm8953-perf_defconfig
+            arch/arm64/configs/xiaomi/xiaomi.config
+            arch/arm64/configs/xiaomi/ysl.config
+          )
+
+          for f in "${CONFIG_FRAGMENTS[@]}"; do
+            echo "Checking $f"
+            test -f "$f"
+          done
+
+          # The YSL branch uses this fragment for 32-bit compatibility.
+          if [[ -f lineageos_xx_vdso ]]; then
+            CONFIG_FRAGMENTS+=(lineageos_xx_vdso)
+          fi
+
+          ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- \
+            CROSS_COMPILE_ARM32=arm-linux-gnueabi- \
+            scripts/kconfig/merge_config.sh -O out_ysl_gcc \
+            "${CONFIG_FRAGMENTS[@]}" \
+            /tmp/lineageos_xx_devicename
+
+          make \
+            ARCH=arm64 \
+            O=out_ysl_gcc \
+            CROSS_COMPILE=aarch64-linux-gnu- \
+            CROSS_COMPILE_ARM32=arm-linux-gnueabi- \
+            CROSS_COMPILE_COMPAT=arm-linux-gnueabi- \
+            olddefconfig
+
+          echo "===== FINAL CONFIG / COMPILER ====="
+          grep -E \
+            '^(CONFIG_LOCALVERSION=|CONFIG_MACH_XIAOMI_YSL=|CONFIG_CRYPTO_LZ4=|CONFIG_ZRAM=|CONFIG_ZRAM_DEFAULT_COMP_ALGORITHM=|CONFIG_SCHED_BORE=)' \
+            out_ysl_gcc/.config || true
+          echo "Target compiler:"
+          aarch64-linux-gnu-gcc --version | head -n 1
+
+      - name: Build YSL kernel with GCC
+        shell: bash
+        run: |
+          set -eux
+
+          # Deliberately do not set LLVM=1, CC=clang, AS=clang, or LD=ld.lld.
+          make -j"$(nproc)" \
+            ARCH=arm64 \
+            SUBARCH=arm64 \
+            O=out_ysl_gcc \
+            CROSS_COMPILE=aarch64-linux-gnu- \
+            CROSS_COMPILE_ARM32=arm-linux-gnueabi- \
+            CROSS_COMPILE_COMPAT=arm-linux-gnueabi- \
+            KBUILD_BUILD_USER="$(git rev-parse --short HEAD | cut -c1-7)" \
+            KBUILD_BUILD_HOST="$(git symbolic-ref --short HEAD || echo detached)" \
+            KBUILD_BUILD_FEATURES='GCC test build for YSL'
+
+          test -s out_ysl_gcc/arch/arm64/boot/Image.gz
+
+      - name: Create YSL Image.gz-dtb artifact
+        shell: bash
+        run: |
+          set -eux
+          rm -rf artifacts-gcc
+          mkdir -p artifacts-gcc
+
+          DTB="$(
+            find out_ysl_gcc/arch/arm64/boot/dts \
+              -type f -name '*.dtb' -print \
+              | grep -Ei 'ysl|8953.*mtp' \
+              | head -n1 || true
+          )"
+
+          if [ -z "$DTB" ]; then
+            echo "ERROR: No YSL DTB found"
+            find out_ysl_gcc/arch/arm64/boot/dts -type f -name '*.dtb' -print | sort
+            exit 1
+          fi
+
+          echo "Using DTB: $DTB"
+          cat out_ysl_gcc/arch/arm64/boot/Image.gz "$DTB" > artifacts-gcc/Image.gz-dtb-gcc
+          test -s artifacts-gcc/Image.gz-dtb-gcc
+          ls -lh artifacts-gcc/Image.gz-dtb-gcc
+
+      - name: Upload GCC YSL kernel
+        uses: actions/upload-artifact@v4
+        with:
+          name: ysl-Image.gz-dtb-gcc
+          path: artifacts-gcc/Image.gz-dtb-gcc
+          if-no-files-found: error
