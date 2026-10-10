@@ -168,7 +168,7 @@ struct diag_dci_health_stats_proc {
 	int client_id;
 	struct diag_dci_health_stats health;
 	int proc;
-} __packed;
+};
 
 struct diag_dci_peripherals_t {
 	int proc;
