@@ -3168,10 +3168,15 @@ int wlan_hdd_process_ftm_host_cmd
          break;
 
       case PTT_MSG_DBG_READ_REGISTER:
+      {
+         typeof(pFTMCmd->msgBody.DbgReadRegister.regValue) reg_value;
+
          wpalReadRegister(pFTMCmd->msgBody.DbgReadRegister.regAddr,
-                          &pFTMCmd->msgBody.DbgReadRegister.regValue);
+                          &reg_value);
+         pFTMCmd->msgBody.DbgReadRegister.regValue = reg_value;
          needToRouteHal = 0;
          break;
+      }
 
       case PTT_MSG_DBG_WRITE_REGISTER:
          wpalWriteRegister(pFTMCmd->msgBody.DbgWriteRegister.regAddr,
