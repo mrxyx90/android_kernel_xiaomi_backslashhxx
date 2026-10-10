@@ -39,7 +39,7 @@ static DEFINE_MUTEX(session_lock);
 static struct us_client *session[USM_SESSION_MAX];
 static int32_t q6usm_mmapcallback(struct apr_client_data *data, void *priv);
 static int32_t q6usm_callback(struct apr_client_data *data, void *priv);
-static void q6usm_add_hdr(struct us_client *usc, struct apr_hdr *hdr,
+static void q6usm_add_hdr(struct us_client *usc, void *cmd,
 			  uint32_t pkt_size, bool cmd_flg);
 
 struct usm_mmap {
@@ -52,18 +52,21 @@ struct usm_mmap {
 
 static struct usm_mmap this_mmap;
 
-static void q6usm_add_mmaphdr(struct apr_hdr *hdr,
-			      uint32_t pkt_size, bool cmd_flg, u32 token)
+static void q6usm_add_mmaphdr(void *cmd, uint32_t pkt_size,
+			      bool cmd_flg, u32 token)
 {
-	hdr->hdr_field = APR_HDR_FIELD(APR_MSG_TYPE_SEQ_CMD,
-				       APR_HDR_LEN(APR_HDR_SIZE), APR_PKT_VER);
-	hdr->src_port = 0;
-	hdr->dest_port = 0;
+	struct apr_hdr hdr = { 0 };
+
+	hdr.hdr_field = APR_HDR_FIELD(APR_MSG_TYPE_SEQ_CMD,
+				      APR_HDR_LEN(APR_HDR_SIZE), APR_PKT_VER);
+	hdr.src_port = 0;
+	hdr.dest_port = 0;
 	if (cmd_flg) {
-		hdr->token = token;
+		hdr.token = token;
 		atomic_set(&this_mmap.cmd_state, 1);
 	}
-	hdr->pkt_size  = pkt_size;
+	hdr.pkt_size = pkt_size;
+	memcpy(cmd, &hdr, sizeof(hdr));
 }
 
 static int q6usm_memory_map(phys_addr_t buf_add, int dir, uint32_t bufsz,
@@ -77,7 +80,7 @@ static int q6usm_memory_map(phys_addr_t buf_add, int dir, uint32_t bufsz,
 		return -EINVAL;
 	}
 
-	q6usm_add_mmaphdr(&mem_region_map.hdr,
+	q6usm_add_mmaphdr(&mem_region_map,
 			  sizeof(struct usm_cmd_memory_map_region), true,
 			  ((session << 8) | dir));
 
@@ -125,7 +128,7 @@ int q6usm_memory_unmap(phys_addr_t buf_add, int dir, uint32_t session,
 		return -EINVAL;
 	}
 
-	q6usm_add_mmaphdr(&mem_unmap.hdr,
+	q6usm_add_mmaphdr(&mem_unmap,
 			  sizeof(struct usm_cmd_memory_unmap_region), true,
 			  ((session << 8) | dir));
 	mem_unmap.hdr.opcode = USM_CMD_SHARED_MEM_UNMAP_REGION;
@@ -758,25 +761,28 @@ uint32_t q6usm_get_virtual_address(int dir,
 	return ret;
 }
 
-static void q6usm_add_hdr(struct us_client *usc, struct apr_hdr *hdr,
+static void q6usm_add_hdr(struct us_client *usc, void *cmd,
 			  uint32_t pkt_size, bool cmd_flg)
 {
+	struct apr_hdr hdr = { 0 };
+
 	mutex_lock(&usc->cmd_lock);
-	hdr->hdr_field = APR_HDR_FIELD(APR_MSG_TYPE_SEQ_CMD,
-				       APR_HDR_LEN(sizeof(struct apr_hdr)),
-				       APR_PKT_VER);
-	hdr->src_svc = ((struct apr_svc *)usc->apr)->id;
-	hdr->src_domain = APR_DOMAIN_APPS;
-	hdr->dest_svc = APR_SVC_USM;
-	hdr->dest_domain = APR_DOMAIN_ADSP;
-	hdr->src_port = (usc->session << 8) | 0x0001;
-	hdr->dest_port = (usc->session << 8) | 0x0001;
+	hdr.hdr_field = APR_HDR_FIELD(APR_MSG_TYPE_SEQ_CMD,
+				      APR_HDR_LEN(sizeof(struct apr_hdr)),
+				      APR_PKT_VER);
+	hdr.src_svc = ((struct apr_svc *)usc->apr)->id;
+	hdr.src_domain = APR_DOMAIN_APPS;
+	hdr.dest_svc = APR_SVC_USM;
+	hdr.dest_domain = APR_DOMAIN_ADSP;
+	hdr.src_port = (usc->session << 8) | 0x0001;
+	hdr.dest_port = (usc->session << 8) | 0x0001;
 	if (cmd_flg) {
-		hdr->token = usc->session;
+		hdr.token = usc->session;
 		atomic_set(&usc->cmd_state, 1);
 	}
-	hdr->pkt_size  = pkt_size;
+	hdr.pkt_size = pkt_size;
 	mutex_unlock(&usc->cmd_lock);
+	memcpy(cmd, &hdr, sizeof(hdr));
 }
 
 static uint32_t q6usm_ext2int_format(uint32_t ext_format)
@@ -821,7 +827,7 @@ int q6usm_open_read(struct us_client *usc,
 
 	pr_debug("%s: session[%d]", __func__, usc->session);
 
-	q6usm_add_hdr(usc, &open.hdr, sizeof(open), true);
+	q6usm_add_hdr(usc, open, sizeof(open), true);
 	open.hdr.opcode = USM_STREAM_CMD_OPEN_READ;
 	open.src_endpoint = 0; /* AFE */
 	open.pre_proc_top = 0; /* No preprocessing required */
@@ -896,7 +902,7 @@ int q6usm_enc_cfg_blk(struct us_client *usc, struct us_encdec_cfg *us_cfg)
 	} else
 		round_params_size = 0;
 
-	q6usm_add_hdr(usc, &enc_cfg->hdr, total_cfg_size, true);
+	q6usm_add_hdr(usc, enc_cfg, total_cfg_size, true);
 
 	enc_cfg->hdr.opcode = USM_STREAM_CMD_SET_ENC_PARAM;
 	enc_cfg->param_id = USM_PARAM_ID_ENCDEC_ENC_CFG_BLK;
@@ -1010,7 +1016,7 @@ int q6usm_dec_cfg_blk(struct us_client *usc, struct us_encdec_cfg *us_cfg)
 		round_params_size = 0;
 	}
 
-	q6usm_add_hdr(usc, &dec_cfg->hdr, total_cfg_size, true);
+	q6usm_add_hdr(usc, dec_cfg, total_cfg_size, true);
 
 	dec_cfg->hdr.opcode = USM_DATA_CMD_MEDIA_FORMAT_UPDATE;
 	dec_cfg->format_id = int_format;
@@ -1068,7 +1074,7 @@ int q6usm_open_write(struct us_client *usc,
 
 	pr_debug("%s: session[%d]", __func__, usc->session);
 
-	q6usm_add_hdr(usc, &open.hdr, sizeof(open), true);
+	q6usm_add_hdr(usc, open, sizeof(open), true);
 	open.hdr.opcode = USM_STREAM_CMD_OPEN_WRITE;
 
 	int_format = q6usm_ext2int_format(format);
@@ -1110,7 +1116,7 @@ int q6usm_run(struct us_client *usc, uint32_t flags,
 		pr_err("%s: APR handle NULL\n", __func__);
 		return -EINVAL;
 	}
-	q6usm_add_hdr(usc, &run.hdr, sizeof(run), true);
+	q6usm_add_hdr(usc, run, sizeof(run), true);
 
 	run.hdr.opcode = USM_SESSION_CMD_RUN;
 	run.flags    = flags;
@@ -1170,7 +1176,7 @@ int q6usm_read(struct us_client *usc, uint32_t read_ind)
 		read_counter = (port->buf_cnt - port->cpu_buf) + read_ind;
 	}
 
-	q6usm_add_hdr(usc, &read.hdr, sizeof(read), false);
+	q6usm_add_hdr(usc, read, sizeof(read), false);
 
 	read.hdr.opcode = USM_DATA_CMD_READ;
 	read.buf_size = port->buf_size;
@@ -1247,7 +1253,7 @@ int q6usm_write(struct us_client *usc, uint32_t write_ind)
 		}
 	}
 
-	q6usm_add_hdr(usc, &cmd_write.hdr, sizeof(cmd_write), false);
+	q6usm_add_hdr(usc, cmd_write, sizeof(cmd_write), false);
 
 	cmd_write.hdr.opcode = USM_DATA_CMD_WRITE;
 	cmd_write.buf_size = port->buf_size;
@@ -1365,7 +1371,7 @@ int q6usm_set_us_detection(struct us_client *usc,
 		return -EINVAL;
 	}
 
-	q6usm_add_hdr(usc, &detect_info->hdr, detect_info_size, true);
+	q6usm_add_hdr(usc, detect_info, detect_info_size, true);
 
 	detect_info->hdr.opcode = USM_SESSION_CMD_SIGNAL_DETECT_MODE;
 
@@ -1400,7 +1406,7 @@ int q6usm_set_us_stream_param(int dir, struct us_client *usc,
 	}
 	port = &usc->port[dir];
 
-	q6usm_add_hdr(usc, &cmd_set_param.hdr, sizeof(cmd_set_param), true);
+	q6usm_add_hdr(usc, cmd_set_param, sizeof(cmd_set_param), true);
 
 	cmd_set_param.hdr.opcode = USM_STREAM_CMD_SET_PARAM;
 	cmd_set_param.buf_size = buf_size;
@@ -1446,7 +1452,7 @@ int q6usm_get_us_stream_param(int dir, struct us_client *usc,
 	}
 	port = &usc->port[dir];
 
-	q6usm_add_hdr(usc, &cmd_get_param.hdr, sizeof(cmd_get_param), true);
+	q6usm_add_hdr(usc, cmd_get_param, sizeof(cmd_get_param), true);
 
 	cmd_get_param.hdr.opcode = USM_STREAM_CMD_GET_PARAM;
 	cmd_get_param.buf_size = buf_size;
