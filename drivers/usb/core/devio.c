@@ -52,9 +52,21 @@
 #include <linux/uaccess.h>
 #include <linux/dma-mapping.h>
 #include <asm/byteorder.h>
+#include <asm/unaligned.h>
 #include <linux/moduleparam.h>
 
 #include "usb.h"
+
+
+static inline u16 usbfs_get_le16(const void *ptr)
+{
+	return le16_to_cpu(get_unaligned((const __le16 *)ptr));
+}
+
+static inline void usbfs_le16_to_cpu(void *ptr)
+{
+	put_unaligned(usbfs_get_le16(ptr), (u16 *)ptr);
+}
 
 #define USB_MAXBUS			64
 #define USB_DEVICE_MAX			(USB_MAXBUS * 128)
@@ -305,10 +317,10 @@ static ssize_t usbdev_read(struct file *file, char __user *buf, size_t nbytes,
 		struct usb_device_descriptor temp_desc;
 
 		memcpy(&temp_desc, &dev->descriptor, sizeof(dev->descriptor));
-		le16_to_cpus(&temp_desc.bcdUSB);
-		le16_to_cpus(&temp_desc.idVendor);
-		le16_to_cpus(&temp_desc.idProduct);
-		le16_to_cpus(&temp_desc.bcdDevice);
+		usbfs_le16_to_cpu((u8 *)&temp_desc + offsetof(struct usb_device_descriptor, bcdUSB));
+		usbfs_le16_to_cpu((u8 *)&temp_desc + offsetof(struct usb_device_descriptor, idVendor));
+		usbfs_le16_to_cpu((u8 *)&temp_desc + offsetof(struct usb_device_descriptor, idProduct));
+		usbfs_le16_to_cpu((u8 *)&temp_desc + offsetof(struct usb_device_descriptor, bcdDevice));
 
 		len = sizeof(struct usb_device_descriptor) - pos;
 		if (len > nbytes)
@@ -1515,12 +1527,12 @@ static int proc_do_submiturb(struct usb_dev_state *ps, struct usbdevfs_urb *uurb
 			ret = -EFAULT;
 			goto error;
 		}
-		if (uurb->buffer_length < (le16_to_cpup(&dr->wLength) + 8)) {
+		if (uurb->buffer_length < (usbfs_get_le16((u8 *)dr + offsetof(struct usb_ctrlrequest, wLength)) + 8)) {
 			ret = -EINVAL;
 			goto error;
 		}
 		ret = check_ctrlrecip(ps, dr->bRequestType, dr->bRequest,
-				      le16_to_cpup(&dr->wIndex));
+				      usbfs_get_le16((u8 *)dr + offsetof(struct usb_ctrlrequest, wIndex)));
 		if (ret)
 			goto error;
 		uurb->buffer_length = le16_to_cpup(&dr->wLength);
@@ -1538,9 +1550,9 @@ static int proc_do_submiturb(struct usb_dev_state *ps, struct usbdevfs_urb *uurb
 			"bRequest=%02x wValue=%04x "
 			"wIndex=%04x wLength=%04x\n",
 			dr->bRequestType, dr->bRequest,
-			__le16_to_cpup(&dr->wValue),
-			__le16_to_cpup(&dr->wIndex),
-			__le16_to_cpup(&dr->wLength));
+			usbfs_get_le16((u8 *)dr + offsetof(struct usb_ctrlrequest, wValue)),
+			usbfs_get_le16((u8 *)dr + offsetof(struct usb_ctrlrequest, wIndex)),
+			usbfs_get_le16((u8 *)dr + offsetof(struct usb_ctrlrequest, wLength)));
 		u = sizeof(struct usb_ctrlrequest);
 		break;
 
