@@ -331,7 +331,7 @@ struct diag_id_tbl_t {
 	uint8_t pd_val;
 	uint8_t peripheral;
 	char *process_name;
-} __packed;
+};
 struct diag_id_t {
 	uint8_t diag_id;
 	uint8_t len;
