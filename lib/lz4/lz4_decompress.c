@@ -57,7 +57,7 @@
      /* On aarch64, we disable this optimization for clang because on certain
       * mobile chipsets and clang, it reduces performance. For more information
       * refer to https://github.com/lz4/lz4/pull/707. */
-#define LZ4_FAST_DEC_LOOP 1
+#define LZ4_FAST_DEC_LOOP 0
 #else
 #define LZ4_FAST_DEC_LOOP 0
 #endif
