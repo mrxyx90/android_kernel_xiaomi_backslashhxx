@@ -262,7 +262,7 @@ static int uhid_hid_get_report(struct hid_device *hid, unsigned char rnum,
 	}
 
 	/* this _always_ takes ownership of @ev */
-	ret = __uhid_report_queue_and_wait(uhid, ev, &ev->u.get_report.id);
+	ret = __uhid_report_queue_and_wait(uhid, ev, (__u32 *)((u8 *)ev + offsetof(struct uhid_event, u.get_report.id)));
 	if (ret)
 		goto unlock;
 
@@ -306,7 +306,7 @@ static int uhid_hid_set_report(struct hid_device *hid, unsigned char rnum,
 	}
 
 	/* this _always_ takes ownership of @ev */
-	ret = __uhid_report_queue_and_wait(uhid, ev, &ev->u.set_report.id);
+	ret = __uhid_report_queue_and_wait(uhid, ev, (__u32 *)((u8 *)ev + offsetof(struct uhid_event, u.set_report.id)));
 	if (ret)
 		goto unlock;
 
