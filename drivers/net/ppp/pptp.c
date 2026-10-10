@@ -377,12 +377,14 @@ static int pptp_bind(struct socket *sock, struct sockaddr *uservaddr,
 {
 	struct sock *sk = sock->sk;
 	struct sockaddr_pppox *sp = (struct sockaddr_pppox *) uservaddr;
-	struct pptp_addr pptp = sp->sa_addr.pptp;
+	struct pptp_addr pptp;
 	struct pppox_sock *po = pppox_sk(sk);
 	int error = 0;
 
 	if (sockaddr_len < sizeof(struct sockaddr_pppox))
 		return -EINVAL;
+
+	pptp = sp->sa_addr.pptp;
 
 	lock_sock(sk);
 
