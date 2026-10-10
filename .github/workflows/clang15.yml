@@ -1,16 +1,7 @@
 name: Build YSL Kernel (Clang 15)
 
 on:
-  push:
-    branches:
-      - ysl-21
   workflow_dispatch:
-    inputs:
-      build_ref:
-        description: "Kernel branch or commit to build"
-        required: true
-        default: "ysl-21"
-        type: string
 
 permissions:
   contents: read
