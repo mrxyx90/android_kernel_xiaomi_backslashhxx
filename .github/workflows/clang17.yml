@@ -1,0 +1,132 @@
+name: Build YSL Kernel (Clang 17)
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - ysl
+    paths:
+      - '.github/workflows/clang17.yml'
+      - 'arch/arm64/configs/**'
+      - 'lineageos_xx_append'
+      - 'Makefile'
+      - 'kernel/**'
+      - 'drivers/**'
+      - 'fs/**'
+      - 'include/**'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ysl-clang17-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build YSL with Clang 17
+    runs-on: ubuntu-22.04
+    timeout-minutes: 180
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+        with:
+          ref: ysl
+          submodules: recursive
+
+      - name: Install dependencies
+        run: |
+          set -eux
+          sudo apt-get update
+          sudo apt-get install -y \
+            bc bison build-essential ccache flex \
+            gcc-arm-linux-gnueabi binutils-arm-linux-gnueabi \
+            libssl-dev libelf-dev python3 rsync unzip zip wget xz-utils lz4
+
+      - name: Download and verify Clang 17
+        shell: bash
+        run: |
+          set -eux
+          # Pinned LLVM release; download prebuilt Linux x86_64 toolchain.
+          TOOLCHAIN_URL="https://github.com/llvm/llvm-project/releases/download/llvmorg-17.0.6/clang+llvm-17.0.6-x86_64-linux-gnu-ubuntu-22.04.tar.xz"
+          mkdir -p "$HOME/clang17"
+          wget --https-only --tries=3 "$TOOLCHAIN_URL" -O /tmp/clang17.tar.xz
+          tar -xJf /tmp/clang17.tar.xz -C "$HOME/clang17" --strip-components=1
+          test -x "$HOME/clang17/bin/clang"
+          "$HOME/clang17/bin/clang" --version
+          echo "$HOME/clang17/bin" >> "$GITHUB_PATH"
+
+      - name: Configure and build YSL kernel
+        shell: bash
+        env:
+          ARCH: arm64
+          SUBARCH: arm64
+          HEADER_ARCH: arm64
+          CCACHE_DIR: ${{ runner.temp }}/.ccache
+        run: |
+          set -euxo pipefail
+          export PATH="$HOME/clang17/bin:$PATH"
+          ccache -M 2G || true
+          rm -rf out_ysl
+          mkdir -p out_ysl
+          echo 'CONFIG_LOCALVERSION="-ysl"' > /tmp/lineageos_xx_devicename
+
+          for f in \
+            arch/arm64/configs/msm8953-perf_defconfig \
+            arch/arm64/configs/xiaomi/xiaomi.config \
+            arch/arm64/configs/xiaomi/ysl.config \
+            lineageos_xx_append
+          do
+            test -f "$f" || { echo "Missing required config: $f"; exit 1; }
+          done
+
+          ARCH=arm64 scripts/kconfig/merge_config.sh -O out_ysl \
+            arch/arm64/configs/msm8953-perf_defconfig \
+            arch/arm64/configs/xiaomi/xiaomi.config \
+            arch/arm64/configs/xiaomi/ysl.config \
+            lineageos_xx_append \
+            /tmp/lineageos_xx_devicename
+
+          make ARCH=arm64 O=out_ysl olddefconfig
+
+          make -j"$(nproc)" \
+            ARCH=arm64 SUBARCH=arm64 O=out_ysl \
+            CC="ccache clang" \
+            HOSTCC=clang HOSTCXX=clang++ \
+            AS=clang AR=llvm-ar NM=llvm-nm LD=ld.lld \
+            OBJCOPY=llvm-objcopy OBJDUMP=llvm-objdump STRIP=llvm-strip \
+            CLANG_TRIPLE=aarch64-linux-gnu- \
+            CROSS_COMPILE=aarch64-linux-gnu- \
+            CROSS_COMPILE_ARM32=arm-linux-gnueabi- \
+            CROSS_COMPILE_COMPAT=arm-linux-gnueabi- \
+            LLVM=1 LLVM_IAS=1 INSTALL_MOD_STRIP=1 \
+            KBUILD_BUILD_USER="$(git rev-parse --short HEAD | cut -c1-7)" \
+            KBUILD_BUILD_HOST="$(git symbolic-ref --short HEAD || echo detached)" \
+            KBUILD_BUILD_FEATURES='source: https://github.com/backslashxx/msm8953-kernel //'
+
+          ccache -s
+          test -s out_ysl/arch/arm64/boot/Image.gz
+
+      - name: Package Image.gz-dtb
+        shell: bash
+        run: |
+          set -euxo pipefail
+          mkdir -p artifacts
+          DTB="$(find out_ysl/arch/arm64/boot/dts -type f -name '*.dtb' -print | grep -Ei 'ysl|8953.*mtp' | head -n1 || true)"
+          if [ -z "$DTB" ]; then
+            echo "ERROR: No YSL DTB found"
+            find out_ysl/arch/arm64/boot/dts -type f -name '*.dtb' -print | sort
+            exit 1
+          fi
+          cat out_ysl/arch/arm64/boot/Image.gz "$DTB" > artifacts/Image.gz-dtb
+          test -s artifacts/Image.gz-dtb
+          ls -lh artifacts/Image.gz-dtb
+
+      - name: Upload kernel artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ysl-Image.gz-dtb-clang17
+          path: artifacts/Image.gz-dtb
+          if-no-files-found: error
+          retention-days: 14
