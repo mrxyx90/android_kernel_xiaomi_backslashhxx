@@ -137,6 +137,7 @@ static size_t snapshot_os(struct kgsl_device *device,
 	int ctxtcount = 0;
 	size_t size = sizeof(*header);
 	struct kgsl_context *context;
+	u32 current_context;
 
 	/*
 	 * Figure out how many active contexts there are - these will
@@ -178,10 +179,11 @@ static size_t snapshot_os(struct kgsl_device *device,
 	 * Save the last active context from global index since its more
 	 * reliable than currrent RB index
 	 */
-	kgsl_sharedmem_readl(&device->memstore, &header->current_context,
+	kgsl_sharedmem_readl(&device->memstore, &current_context,
 		KGSL_MEMSTORE_OFFSET(KGSL_MEMSTORE_GLOBAL, current_context));
+	header->current_context = current_context;
 
-	context = kgsl_context_get(device, header->current_context);
+	context = kgsl_context_get(device, current_context);
 
 	/* Get the current PT base */
 	header->ptbase = kgsl_mmu_get_current_ttbr0(&device->mmu);
@@ -643,6 +645,7 @@ void kgsl_device_snapshot(struct kgsl_device *device,
 	struct kgsl_snapshot *snapshot;
 	struct timespec boot;
 	phys_addr_t pa;
+	u32 chipid;
 
 	if (device->snapshot_memory.ptr == NULL) {
 		KGSL_DRV_ERR(device,
@@ -695,7 +698,8 @@ void kgsl_device_snapshot(struct kgsl_device *device,
 	header = (struct kgsl_snapshot_header *) snapshot->ptr;
 
 	header->magic = SNAPSHOT_MAGIC;
-	header->gpuid = kgsl_gpuid(device, &header->chipid);
+	header->gpuid = kgsl_gpuid(device, &chipid);
+	header->chipid = chipid;
 
 	snapshot->ptr += sizeof(*header);
 	snapshot->remain -= sizeof(*header);
