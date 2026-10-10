@@ -42,6 +42,7 @@
 
 #include <linux/configfs.h>
 #include <linux/usb/composite.h>
+#include <asm/unaligned.h>
 
 #define MAX_INST_NAME_LEN        40
 #define BULK_BUFFER_SIZE    16384
@@ -1059,9 +1060,9 @@ int acc_ctrlrequest_composite(struct usb_composite_dev *cdev,
 	if (w_length > USB_COMP_EP0_BUFSIZ) {
 		if (ctrl->bRequestType & USB_DIR_IN) {
 			/* Cast away the const, we are going to overwrite on purpose. */
-			__le16 *temp = (__le16 *)&ctrl->wLength;
-
-			*temp = cpu_to_le16(USB_COMP_EP0_BUFSIZ);
+			put_unaligned(cpu_to_le16(USB_COMP_EP0_BUFSIZ),
+				      (__le16 *)((u8 *)ctrl +
+				      offsetof(struct usb_ctrlrequest, wLength)));
 			w_length = USB_COMP_EP0_BUFSIZ;
 		} else {
 			return -EINVAL;
