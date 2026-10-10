@@ -26,6 +26,16 @@
 
 #include "u_os_desc.h"
 
+static void usb_bos_add_total_length(struct usb_bos_descriptor *bos,
+				     u16 length)
+{
+	u8 *field = (u8 *)bos + offsetof(struct usb_bos_descriptor, wTotalLength);
+	__le16 total = get_unaligned((__le16 *)field);
+
+	put_unaligned(cpu_to_le16(le16_to_cpu(total) + length),
+		      (__le16 *)field);
+}
+
 /* disable LPM by default */
 static bool disable_l1_for_hs;
 module_param(disable_l1_for_hs, bool, 0644);
@@ -798,7 +808,7 @@ static int bos_desc(struct usb_composite_dev *cdev)
 	 */
 	usb_ext = cdev->req->buf + le16_to_cpu(bos->wTotalLength);
 	bos->bNumDeviceCaps++;
-	le16_add_cpu(&bos->wTotalLength, USB_DT_USB_EXT_CAP_SIZE);
+	usb_bos_add_total_length(bos, USB_DT_USB_EXT_CAP_SIZE);
 	usb_ext->bLength = USB_DT_USB_EXT_CAP_SIZE;
 	usb_ext->bDescriptorType = USB_DT_DEVICE_CAPABILITY;
 	usb_ext->bDevCapabilityType = USB_CAP_TYPE_EXT;
@@ -811,7 +821,7 @@ static int bos_desc(struct usb_composite_dev *cdev)
 		 */
 		ss_cap = cdev->req->buf + le16_to_cpu(bos->wTotalLength);
 		bos->bNumDeviceCaps++;
-		le16_add_cpu(&bos->wTotalLength, USB_DT_USB_SS_CAP_SIZE);
+		usb_bos_add_total_length(bos, USB_DT_USB_SS_CAP_SIZE);
 		ss_cap->bLength = USB_DT_USB_SS_CAP_SIZE;
 		ss_cap->bDescriptorType = USB_DT_DEVICE_CAPABILITY;
 		ss_cap->bDevCapabilityType = USB_SS_CAP_TYPE;
@@ -847,7 +857,7 @@ static int bos_desc(struct usb_composite_dev *cdev)
 		 * Report typical values.
 		 */
 
-		le16_add_cpu(&bos->wTotalLength, USB_DT_USB_SSP_CAP_SIZE(1));
+		usb_bos_add_total_length(bos, USB_DT_USB_SSP_CAP_SIZE(1));
 		ssp_cap->bLength = USB_DT_USB_SSP_CAP_SIZE(1);
 		ssp_cap->bDescriptorType = USB_DT_DEVICE_CAPABILITY;
 		ssp_cap->bDevCapabilityType = USB_SSP_CAP_TYPE;
@@ -1787,9 +1797,9 @@ composite_setup(struct usb_gadget *gadget, const struct usb_ctrlrequest *ctrl)
 	if (w_length > USB_COMP_EP0_BUFSIZ) {
 		if (ctrl->bRequestType & USB_DIR_IN) {
 			/* Cast away the const, we are going to overwrite on purpose. */
-			__le16 *temp = (__le16 *)&ctrl->wLength;
-
-			*temp = cpu_to_le16(USB_COMP_EP0_BUFSIZ);
+			put_unaligned(cpu_to_le16(USB_COMP_EP0_BUFSIZ),
+				      (__le16 *)((u8 *)ctrl +
+				      offsetof(struct usb_ctrlrequest, wLength)));
 			w_length = USB_COMP_EP0_BUFSIZ;
 		} else {
 			goto done;
