@@ -181,7 +181,7 @@ static bool ipv6_dest_hao(struct sk_buff *skb, int optoff)
 	struct ipv6_destopt_hao *hao;
 	struct inet6_skb_parm *opt = IP6CB(skb);
 	struct ipv6hdr *ipv6h = ipv6_hdr(skb);
-	struct in6_addr tmp_addr;
+	struct in6_addr tmp_addr, hao_addr;
 	int ret;
 
 	if (opt->dsthao) {
@@ -199,14 +199,15 @@ static bool ipv6_dest_hao(struct sk_buff *skb, int optoff)
 		goto discard;
 	}
 
-	if (!(ipv6_addr_type(&hao->addr) & IPV6_ADDR_UNICAST)) {
+	memcpy(&hao_addr, &hao->addr, sizeof(hao_addr));
+	if (!(ipv6_addr_type(&hao_addr) & IPV6_ADDR_UNICAST)) {
 		net_dbg_ratelimited("hao is not an unicast addr: %pI6\n",
-				    &hao->addr);
+				    &hao_addr);
 		goto discard;
 	}
 
 	ret = xfrm6_input_addr(skb, (xfrm_address_t *)&ipv6h->daddr,
-			       (xfrm_address_t *)&hao->addr, IPPROTO_DSTOPTS);
+			       (xfrm_address_t *)&hao_addr, IPPROTO_DSTOPTS);
 	if (unlikely(ret < 0))
 		goto discard;
 
@@ -224,8 +225,8 @@ static bool ipv6_dest_hao(struct sk_buff *skb, int optoff)
 		skb->ip_summed = CHECKSUM_NONE;
 
 	tmp_addr = ipv6h->saddr;
-	ipv6h->saddr = hao->addr;
-	hao->addr = tmp_addr;
+	ipv6h->saddr = hao_addr;
+	memcpy(&hao->addr, &tmp_addr, sizeof(tmp_addr));
 
 	if (skb->tstamp.tv64 == 0)
 		__net_timestamp(skb);
