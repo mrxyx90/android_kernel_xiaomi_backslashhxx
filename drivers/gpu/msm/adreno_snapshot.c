@@ -441,6 +441,7 @@ static size_t snapshot_rb(struct kgsl_device *device, u8 *buf,
 	struct snapshot_rb_params *snap_rb_params = priv;
 	struct kgsl_snapshot *snapshot = snap_rb_params->snapshot;
 	struct adreno_ringbuffer *rb = snap_rb_params->rb;
+	u64 timestamp_queued, timestamp_retired;
 
 	/*
 	 * Dump the entire ringbuffer - the parser can choose how much of it to
@@ -460,9 +461,11 @@ static size_t snapshot_rb(struct kgsl_device *device, u8 *buf,
 	header->rbsize = KGSL_RB_DWORDS;
 	header->count = KGSL_RB_DWORDS;
 	adreno_rb_readtimestamp(adreno_dev, rb, KGSL_TIMESTAMP_QUEUED,
-					&header->timestamp_queued);
+					&timestamp_queued);
 	adreno_rb_readtimestamp(adreno_dev, rb, KGSL_TIMESTAMP_RETIRED,
-					&header->timestamp_retired);
+					&timestamp_retired);
+	header->timestamp_queued = timestamp_queued;
+	header->timestamp_retired = timestamp_retired;
 	header->gpuaddr = rb->buffer_desc.gpuaddr;
 	header->id = rb->id;
 
