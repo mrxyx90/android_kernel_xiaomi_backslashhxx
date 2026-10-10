@@ -1810,11 +1810,13 @@ static int diag_switch_logging(struct diag_logging_mode_param_t *param)
 		param->diag_id = 0;
 		param->pd_val = 0;
 		param->peripheral = -EINVAL;
+		peripheral = -EINVAL;
 
 		for (i = UPD_WLAN; i < NUM_MD_SESSIONS; i++) {
 			if (pd_mask & (1 << i)) {
 				if (diag_search_diagid_by_pd(i, &param->diag_id,
-					&param->peripheral)) {
+					&peripheral)) {
+					param->peripheral = peripheral;
 					param->pd_val = i;
 					break;
 				}
