@@ -377,6 +377,7 @@ static int pptp_bind(struct socket *sock, struct sockaddr *uservaddr,
 {
 	struct sock *sk = sock->sk;
 	struct sockaddr_pppox *sp = (struct sockaddr_pppox *) uservaddr;
+	struct pptp_addr pptp = sp->sa_addr.pptp;
 	struct pppox_sock *po = pppox_sk(sk);
 	int error = 0;
 
@@ -395,7 +396,7 @@ static int pptp_bind(struct socket *sock, struct sockaddr *uservaddr,
 		goto out;
 	}
 
-	if (add_chan(po, &sp->sa_addr.pptp))
+	if (add_chan(po, &pptp))
 		error = -EBUSY;
 	else
 		sk->sk_state |= PPPOX_BOUND;
