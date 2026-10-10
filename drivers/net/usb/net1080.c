@@ -484,7 +484,9 @@ encapsulate:
 	if (!((skb->len + sizeof *trailer) & 0x01))
 		*skb_put(skb, 1) = PAD_BYTE;
 	trailer = (struct nc_trailer *) skb_put(skb, sizeof *trailer);
-	put_unaligned(header->packet_id, (u8 *)trailer + offsetof(struct nc_trailer, packet_id));
+	put_unaligned(header->packet_id,
+		      (__le16 *)((u8 *)trailer +
+		      offsetof(struct nc_trailer, packet_id)));
 #if 0
 	netdev_dbg(dev->net, "frame >tx h %d p %d id %d\n",
 		   header->hdr_len, header->packet_len,
