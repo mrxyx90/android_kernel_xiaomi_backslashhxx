@@ -428,6 +428,11 @@ static int __scm_call_armv8_64(u64 x0, u64 x1, u64 x2, u64 x3, u64 x4, u64 x5,
 	return r0;
 }
 
+#ifdef __clang__
+/* SMC32 intentionally uses 32-bit W-register aliases on AArch64. */
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wasm-operand-widths"
+#endif
 static int __scm_call_armv8_32(u32 w0, u32 w1, u32 w2, u32 w3, u32 w4, u32 w5,
 				u64 *ret1, u64 *ret2, u64 *ret3)
 {
@@ -477,6 +482,9 @@ static int __scm_call_armv8_32(u32 w0, u32 w1, u32 w2, u32 w3, u32 w4, u32 w5,
 
 	return r0;
 }
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
 
 #else
 
