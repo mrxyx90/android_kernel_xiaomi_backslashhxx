@@ -441,7 +441,7 @@ static size_t snapshot_rb(struct kgsl_device *device, u8 *buf,
 	struct snapshot_rb_params *snap_rb_params = priv;
 	struct kgsl_snapshot *snapshot = snap_rb_params->snapshot;
 	struct adreno_ringbuffer *rb = snap_rb_params->rb;
-	u64 timestamp_queued, timestamp_retired;
+	u32 timestamp_queued, timestamp_retired;
 
 	/*
 	 * Dump the entire ringbuffer - the parser can choose how much of it to
