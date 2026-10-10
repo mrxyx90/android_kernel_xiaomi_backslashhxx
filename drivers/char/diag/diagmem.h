@@ -50,7 +50,7 @@ struct diag_mempool_t {
 	unsigned int poolsize;
 	int count;
 	spinlock_t lock;
-} __packed;
+};
 
 extern struct diag_mempool_t diag_mempools[NUM_MEMORY_POOLS];
 
