@@ -60,11 +60,11 @@ jobs:
           set -eux
           clang-18 --version
           ld.lld-18 --version
-          llvm-ar-15 --version
-          llvm-nm-15 --version
-          llvm-objcopy-15 --version
-          llvm-objdump-15 --version
-          llvm-strip-15 --version
+          llvm-ar-18 --version
+          llvm-nm-18 --version
+          llvm-objcopy-18 --version
+          llvm-objdump-18 --version
+          llvm-strip-18 --version
           # Provide an unversioned LLD path for build tools.
           sudo ln -sf /usr/bin/ld.lld-18 /usr/local/bin/ld.lld
           command -v ld.lld
@@ -131,12 +131,12 @@ jobs:
             V=1 \
             CC='ccache clang-18 -fuse-ld=lld' \
             AS=clang-18 \
-            AR=llvm-ar-15 \
-            NM=llvm-nm-15 \
+            AR=llvm-ar-18 \
+            NM=llvm-nm-18 \
             LD=ld.lld-18 \
-            OBJCOPY=llvm-objcopy-15 \
-            OBJDUMP=llvm-objdump-15 \
-            STRIP=llvm-strip-15 \
+            OBJCOPY=llvm-objcopy-18 \
+            OBJDUMP=llvm-objdump-18 \
+            STRIP=llvm-strip-18 \
             CLANG_TRIPLE=aarch64-linux-gnu- \
             CROSS_COMPILE=aarch64-linux-gnu- \
             CROSS_COMPILE_ARM32=arm-linux-gnueabi- \
