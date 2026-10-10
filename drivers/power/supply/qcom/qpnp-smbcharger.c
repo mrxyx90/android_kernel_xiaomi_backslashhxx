@@ -908,9 +908,12 @@ static int get_prop_batt_status(struct smbchg_chip *chip)
 {
 	int rc, status = POWER_SUPPLY_STATUS_DISCHARGING;
 	u8 reg = 0, chg_type;
-	bool charger_present, chg_inhibit;
+	bool charger_present, chg_inhibit, usb_present, dc_present;
 
-	charger_present = is_usb_present(chip) | is_dc_present(chip) |
+	/* Read both paths before combining their status. */
+	usb_present = is_usb_present(chip);
+	dc_present = is_dc_present(chip);
+	charger_present = usb_present || dc_present ||
 			  chip->hvdcp_3_det_ignore_uv;
 	if (!charger_present)
 		return POWER_SUPPLY_STATUS_DISCHARGING;
